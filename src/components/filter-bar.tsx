@@ -1,3 +1,4 @@
+
 "use client";
 
 import type { FC } from "react";
@@ -5,6 +6,7 @@ import { useState, useEffect } from "react";
 import type { DateRange } from "react-day-picker";
 import { format } from "date-fns";
 import { Calendar as CalendarIcon, Bot, Code, Settings, Globe, RefreshCw, Star, X, Check, ChevronsUpDown } from "lucide-react";
+import { CommandList } from "@/components/ui/command";
 
 import { cn } from "@/lib/utils";
 import type { Filters, TaskQuery, ProjectTag } from "@/lib/types";
@@ -82,26 +84,27 @@ const TagSelect: FC<{ selectedTags: ProjectTag[], onSelectedTagsChange: (tags: P
                 <Command>
                     <CommandInput placeholder="Search tags..." />
                     <CommandEmpty>No tag found.</CommandEmpty>
-                    <CommandGroup className="max-h-64 overflow-y-auto">
-                        {allTags.map((tag) => (
-                            <CommandItem
-                                key={tag.phid}
-                                value={tag.name}
-                                onSelect={() => {
-                                    handleSelect(tag);
-                                    setOpen(true); // Keep popover open after selection
-                                }}
-                            >
-                                <Check
-                                    className={cn(
-                                        "mr-2 h-4 w-4",
-                                        selectedTags.some(st => st.phid === tag.phid) ? "opacity-100" : "opacity-0"
-                                    )}
-                                />
-                                {tag.name}
-                            </CommandItem>
-                        ))}
-                    </CommandGroup>
+                    <CommandList>
+                      <CommandGroup>
+                          {allTags.map((tag) => (
+                              <CommandItem
+                                  key={tag.phid}
+                                  value={tag.name}
+                                  onSelect={() => {
+                                      handleSelect(tag);
+                                  }}
+                              >
+                                  <Check
+                                      className={cn(
+                                          "mr-2 h-4 w-4",
+                                          selectedTags.some(st => st.phid === tag.phid) ? "opacity-100" : "opacity-0"
+                                      )}
+                                  />
+                                  {tag.name}
+                              </CommandItem>
+                          ))}
+                      </CommandGroup>
+                    </CommandList>
                 </Command>
             </PopoverContent>
         </Popover>
