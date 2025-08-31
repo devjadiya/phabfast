@@ -4,7 +4,7 @@
 import type { FC } from "react";
 import { useState, useEffect } from "react";
 import type { DateRange } from "react-day-picker";
-import { format } from "date-fns";
+import { format, subDays, startOfMonth } from "date-fns";
 import { Calendar as CalendarIcon, Bot, Code, Settings, Globe, RefreshCw, Star, X, Check, ChevronsUpDown } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -154,6 +154,23 @@ const FilterBar: FC<FilterBarProps> = ({ filters, onFilterChange, onQueryChange 
     onQueryChange(null);
   }
 
+  const setDateRangePreset = (preset: 'today' | '7d' | '30d') => {
+      const today = new Date();
+      let fromDate: Date;
+      switch(preset) {
+          case 'today':
+              fromDate = today;
+              break;
+          case '7d':
+              fromDate = subDays(today, 7);
+              break;
+          case '30d':
+              fromDate = subDays(today, 30);
+              break;
+      }
+      onFilterChange({ dateRange: { from: fromDate, to: today }});
+  }
+
   return (
     <div className="rounded-lg border bg-card/50 p-4 text-card-foreground shadow-sm relative glass-card">
         <Button variant="ghost" size="icon" onClick={resetFilters} className="absolute top-2 right-2" aria-label="Reset filters">
@@ -189,7 +206,14 @@ const FilterBar: FC<FilterBarProps> = ({ filters, onFilterChange, onQueryChange 
         </div>
         
         <div className="md:col-span-4 space-y-2">
-             <Label htmlFor="date-range-picker-trigger">Date Range</Label>
+             <div className="flex items-center justify-between">
+                <Label htmlFor="date-range-picker-trigger">Date Range</Label>
+                <div className="flex gap-1">
+                    <Button variant="link" size="sm" className="h-auto p-1 text-xs" onClick={() => setDateRangePreset('today')}>Today</Button>
+                    <Button variant="link" size="sm" className="h-auto p-1 text-xs" onClick={() => setDateRangePreset('7d')}>7d</Button>
+                    <Button variant="link" size="sm" className="h-auto p-1 text-xs" onClick={() => setDateRangePreset('30d')}>30d</Button>
+                </div>
+             </div>
              <Popover>
                 <PopoverTrigger asChild>
                     <Button

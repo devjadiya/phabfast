@@ -72,6 +72,7 @@ async function fetchTasksFromApi(filters: Filters, after?: string, order?: SortO
 
 async function enrichTask(task: Task): Promise<Task> {
     let detectedLanguage: Language | 'Unknown' = 'Unknown';
+    let languageConfidence = 0;
     let gerritUrl: string | undefined = undefined;
     let difficulty: Difficulty | 'Medium' = 'Medium';
 
@@ -84,6 +85,7 @@ async function enrichTask(task: Task): Promise<Task> {
         if (langResponse.ok) {
             const langData = await langResponse.json();
             detectedLanguage = langData.language;
+            languageConfidence = langData.confidence;
         }
     } catch (e) { /* ignore */ }
 
@@ -107,7 +109,7 @@ async function enrichTask(task: Task): Promise<Task> {
         }
     } catch(e) { /* ignore */ }
     
-    return { ...task, detectedLanguage, gerritUrl, difficulty };
+    return { ...task, detectedLanguage, languageConfidence, gerritUrl, difficulty };
 }
 
 async function exportTasks(tasks: Task[], format: "csv" | "md"): Promise<string> {
@@ -151,7 +153,8 @@ const Page: FC = () => {
         const initialTasks = fetchedTasks.map(task => ({
             ...task,
             difficulty: 'Medium' as Difficulty,
-            detectedLanguage: 'Unknown' as Language
+            detectedLanguage: 'Unknown' as Language,
+            languageConfidence: 0,
         }));
         setTasks(initialTasks); 
         setTotalTasksFetched(initialTasks.length);

@@ -23,6 +23,7 @@ const DetectTaskLanguageOutputSchema = z.object({
   language: z
     .enum([...languages, "Unknown"])
     .describe('The detected programming language of the task. e.g. Python, JavaScript, PHP, Lua, etc.'),
+  confidence: z.number().min(0).max(1).describe("A confidence score between 0 and 1 for the language detection. 1 is most confident.")
 });
 export type DetectTaskLanguageOutput = z.infer<typeof DetectTaskLanguageOutputSchema>;
 
@@ -38,6 +39,8 @@ const detectTaskLanguagePrompt = ai.definePrompt({
 
   Given a task title and description, you will determine the primary programming language used in the task from the following list: ${languages.join(', ')}.
   If no specific language is mentioned or can be inferred, respond with "Other".
+  
+  You must also provide a confidence score between 0.0 and 1.0 for your prediction.
 
   Description: {{{description}}}
   `,
@@ -55,7 +58,7 @@ const detectTaskLanguageFlow = ai.defineFlow(
         return output!;
     } catch (e) {
         console.error("Error in language detection flow: ", e);
-        return { language: "Unknown" };
+        return { language: "Unknown", confidence: 0 };
     }
   }
 );

@@ -16,6 +16,7 @@ export interface Task {
   points: number;
   subscribers: number;
   detectedLanguage?: string;
+  languageConfidence?: number;
   gerritUrl?: string;
   tags: string[];
   phabricatorUrl: string;

@@ -71,10 +71,19 @@ const TaskCard: FC<TaskCardProps> = ({ task }) => {
             <Badge key={tag} variant="secondary" className="font-normal">{tag}</Badge>
           ))}
            {task.detectedLanguage && task.detectedLanguage !== "Unknown" && (
-            <Badge variant="outline">
-                <LanguageIcon language={task.detectedLanguage} /> 
-                <span className="ml-1">{task.detectedLanguage}</span>
-            </Badge>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger>
+                    <Badge variant="outline">
+                        <LanguageIcon language={task.detectedLanguage} /> 
+                        <span className="ml-1">{task.detectedLanguage} ({Math.round((task.languageConfidence || 0) * 100)}%)</span>
+                    </Badge>
+                </TooltipTrigger>
+                <TooltipContent>
+                    <p>AI-predicted. May not be accurate.</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
            )}
         </div>
       </CardHeader>
