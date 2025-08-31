@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect } from 'react';
@@ -27,12 +28,8 @@ export default function LoadMore({ onLoadMore, isFetchingMore }: LoadMoreProps) 
       ref={ref}
       className="flex justify-center items-center p-4 col-span-1 sm:col-span-2 md:col-span-3"
     >
-      {isFetchingMore && (
-         <div className="flex items-center gap-2 text-muted-foreground">
-            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-            <span>Loading more tasks...</span>
-        </div>
-      )}
     </div>
   );
 }
+
+    

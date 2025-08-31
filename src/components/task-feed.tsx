@@ -1,3 +1,4 @@
+
 import type { FC } from 'react';
 import type { Task } from '@/lib/types';
 import TaskCard from '@/components/task-card';
@@ -6,10 +7,11 @@ import TaskCardSkeleton from './task-card-skeleton';
 interface TaskFeedProps {
   tasks: Task[];
   isLoading: boolean;
+  isFetchingMore: boolean;
 }
 
-const TaskFeed: FC<TaskFeedProps> = ({ tasks, isLoading }) => {
-  if (isLoading) {
+const TaskFeed: FC<TaskFeedProps> = ({ tasks, isLoading, isFetchingMore }) => {
+  if (isLoading && tasks.length === 0) {
     return (
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {Array.from({ length: 9 }).map((_, i) => (
@@ -33,8 +35,13 @@ const TaskFeed: FC<TaskFeedProps> = ({ tasks, isLoading }) => {
       {tasks.map((task) => (
         <TaskCard key={task.id} task={task} />
       ))}
+      {isFetchingMore && Array.from({ length: 3 }).map((_, i) => (
+        <TaskCardSkeleton key={`loading-${i}`} />
+      ))}
     </div>
   );
 };
 
 export default TaskFeed;
+
+    

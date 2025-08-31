@@ -1,3 +1,4 @@
+
 "use client";
 
 import type { FC } from "react";
@@ -195,7 +196,7 @@ const Page: FC = () => {
           const combinedTasks = [...prevTasks, ...enrichedTasks];
           // Implement sliding window to keep DOM light
           if (combinedTasks.length > MAX_VISIBLE_TASKS) {
-            return combinedTasks.slice(combinedTasks.length - MAX_visible_tasks);
+            return combinedTasks.slice(combinedTasks.length - MAX_VISIBLE_TASKS);
           }
           return combinedTasks;
         });
@@ -385,7 +386,7 @@ description: "There was an error exporting your tasks.",
                     </Select>
                 </div>
             </div>
-            <TaskFeed tasks={sortedTasks} isLoading={isPending} />
+            <TaskFeed tasks={sortedTasks} isLoading={isPending} isFetchingMore={isFetchingMore} />
             {nextCursor && <LoadMore onLoadMore={handleLoadMore} isFetchingMore={isFetchingMore} />}
           </div>
         </div>
