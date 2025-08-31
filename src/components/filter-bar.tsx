@@ -56,8 +56,8 @@ const FilterBar: FC<FilterBarProps> = ({ filters, onFilterChange, onQueryChange 
   }
 
   return (
-    <div className="rounded-lg border bg-card p-4 text-card-foreground shadow-sm relative">
-        <Button variant="ghost" size="icon" onClick={resetFilters} className="absolute top-1 right-1" aria-label="Reset filters">
+    <div className="rounded-lg border bg-card/50 p-4 text-card-foreground shadow-sm relative glass-card">
+        <Button variant="ghost" size="icon" onClick={resetFilters} className="absolute top-2 right-2" aria-label="Reset filters">
             <RefreshCw className="h-4 w-4" />
         </Button>
       <div className="grid grid-cols-1 gap-6 md:grid-cols-12">
@@ -65,16 +65,16 @@ const FilterBar: FC<FilterBarProps> = ({ filters, onFilterChange, onQueryChange 
           <Label>Quick Filters</Label>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 mt-2">
               <Button
-                  variant={filters.query === 'good-first' ? 'default' : 'outline'}
+                  variant={filters.query === 'good-first' ? 'secondary' : 'outline'}
                   onClick={() => onQueryChange('good-first')}
-                  className="justify-start bg-amber-500/10 border-amber-500/50 text-amber-700 hover:bg-amber-500/20"
+                  className="justify-start data-[state=active]:bg-amber-400/80 data-[state=active]:text-black"
               >
                   <Star className="mr-2 h-4 w-4" /> Good First Task
               </Button>
               {trackButtons.map(({ id, label, icon }) => (
                   <Button 
                       key={id} 
-                      variant={filters.query === id ? 'default' : 'outline'}
+                      variant={filters.query === id ? 'secondary' : 'outline'}
                       onClick={() => onQueryChange(id)}
                       className="justify-start"
                   >
@@ -106,7 +106,7 @@ const FilterBar: FC<FilterBarProps> = ({ filters, onFilterChange, onQueryChange 
             {languages.filter(l => l !== 'Unknown').map((lang) => (
               <Button
                 key={lang}
-                variant={filters.languages.includes(lang) ? 'default' : 'outline'}
+                variant={filters.languages.includes(lang) ? 'secondary' : 'outline'}
                 size="sm"
                 onClick={() => handleLanguageToggle(lang)}
               >
