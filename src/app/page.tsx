@@ -44,6 +44,7 @@ const INITIAL_FILTERS: Filters = {
 };
 
 const API_TASK_LIMIT = 20;
+const MAX_VISIBLE_TASKS = 60; // Keep the DOM light
 
 async function fetchTasksFromApi(filters: Filters, after?: string, order?: SortOption): Promise<{tasks: Task[], nextCursor: string | null}> {
   try {
@@ -130,6 +131,7 @@ async function exportTasks(tasks: Task[], format: "csv" | "md"): Promise<string>
 
 const Page: FC = () => {
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [totalTasksFetched, setTotalTasksFetched] = useState(0);
   const [filters, setFilters] = useState<Filters>(INITIAL_FILTERS);
   const [sortOption, setSortOption] = useState<SortOption>('dateCreated');
   const [isPending, startTransition] = useTransition();
@@ -150,6 +152,7 @@ const Page: FC = () => {
             detectedLanguage: 'Unknown' as Language
         }));
         setTasks(initialTasks); 
+        setTotalTasksFetched(initialTasks.length);
         setNextCursor(newNextCursor);
         
         fetchedTasks.forEach(async (task, index) => {
@@ -185,9 +188,17 @@ const Page: FC = () => {
         const { tasks: newTasks, nextCursor: newNextCursor } = await fetchTasksFromApi(filters, nextCursor, order);
         
         setNextCursor(newNextCursor);
+        setTotalTasksFetched(prev => prev + newTasks.length);
 
         const enrichedTasks = await Promise.all(newTasks.map(enrichTask));
-        setTasks(prevTasks => [...prevTasks, ...enrichedTasks]);
+        setTasks(prevTasks => {
+          const combinedTasks = [...prevTasks, ...enrichedTasks];
+          // Implement sliding window to keep DOM light
+          if (combinedTasks.length > MAX_VISIBLE_TASKS) {
+            return combinedTasks.slice(combinedTasks.length - MAX_visible_tasks);
+          }
+          return combinedTasks;
+        });
 
 
     } catch (error) {
@@ -213,17 +224,19 @@ const Page: FC = () => {
   }, [filters, handleFetchTasks]);
   
   const handleFilterChange = (newFilters: Partial<Filters>) => {
+    const currentQuery = filters.query;
     const combinedFilters = { ...filters, ...newFilters };
+    
+    // If we're applying a language or difficulty filter, preserve the existing track query.
     if (newFilters.languages?.length || newFilters.difficulties?.length) {
-      // Keep query if other filters are applied
-      setFilters(combinedFilters);
-    } else {
-      setFilters(prev => ({ ...prev, ...newFilters }));
+      combinedFilters.query = currentQuery;
     }
+    
+    setFilters(combinedFilters);
   };
   
   const handleQueryChange = (query: TaskQuery | null) => {
-    setFilters(prev => ({ ...INITIAL_FILTERS, query: query, languages: prev.languages, difficulties: prev.difficulties }));
+    setFilters(prev => ({ ...INITIAL_FILTERS, query: query }));
   };
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -356,7 +369,7 @@ description: "There was an error exporting your tasks.",
           <div className="mt-8">
             <div className="mb-4 flex items-center justify-between">
                 <p className="text-sm text-muted-foreground">
-                    Found {sortedTasks.length} {sortedTasks.length === 1 ? 'task' : 'tasks'}.
+                    Showing {sortedTasks.length} of {totalTasksFetched} {totalTasksFetched === 1 ? 'task' : 'tasks'}.
                 </p>
                 <div className="flex items-center gap-2">
                     <Label htmlFor="sort-by" className="text-sm text-muted-foreground">Sort by:</Label>
@@ -401,3 +414,5 @@ description: "There was an error exporting your tasks.",
 };
 
 export default Page;
+
+    
