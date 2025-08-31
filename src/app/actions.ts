@@ -106,25 +106,26 @@ async function fetchGerritPatch(taskId: number): Promise<string | undefined> {
 
 export async function getTasks(filters: Filters): Promise<Task[]> {
   
-  const constraints: any = {
-    statuses: filters.openOnly ? ['open'] : undefined,
-  };
+  const constraints: any = {};
+   if (filters.openOnly) {
+    constraints.statuses = ['open'];
+  }
 
   const queryParts: string[] = [];
   if (filters.query) {
     if (filters.query === 'good-first') {
       queryParts.push('"good first task"');
     } else if (filters.query === 'bot-dev') {
-      queryParts.push('bots');
+      queryParts.push('bots OR automation');
     }
   }
 
   if (filters.languages.length > 0) {
-    queryParts.push(...filters.languages);
+    queryParts.push(...filters.languages.filter(l => l !== 'Other'));
   }
 
   if (filters.difficulties.length > 0) {
-    queryParts.push(...filters.difficulties)
+    queryParts.push(...filters.difficulties.map(d => d.toLowerCase()));
   }
   
   if (queryParts.length > 0) {
@@ -160,6 +161,8 @@ export async function getTasks(filters: Filters): Promise<Task[]> {
       createdAt: fromUnixTime(phabTask.fields.dateCreated).toISOString().split('T')[0],
   }));
 
+  // Client-side filtering because Phabricator API has limitations
+  
   if (filters.dateRange.from && filters.dateRange.to) {
     tasks = tasks.filter(task => {
       const taskDate = fromUnixTime(task.dateCreated);
@@ -167,7 +170,11 @@ export async function getTasks(filters: Filters): Promise<Task[]> {
     });
   }
   
-  tasks = tasks.filter(task => task.subscribers <= filters.maxSubscribers);
+  if (filters.query === 'good-first') {
+    tasks = tasks.filter(task => task.subscribers <= 3);
+  } else {
+    tasks = tasks.filter(task => task.subscribers <= filters.maxSubscribers);
+  }
 
   // Language detection and Gerrit patch fetching
   const enrichedTasks = await Promise.all(
@@ -177,7 +184,7 @@ export async function getTasks(filters: Filters): Promise<Task[]> {
 
       try {
         const [langResult, gerritResult] = await Promise.all([
-          detectTaskLanguage({ description: task.description }),
+          detectTaskLanguage({ description: `${task.title} ${task.description}` }),
           fetchGerritPatch(task.id),
         ]);
         
@@ -192,7 +199,16 @@ export async function getTasks(filters: Filters): Promise<Task[]> {
     })
   );
 
-  return enrichedTasks.sort((a, b) => b.dateCreated - a.dateCreated);
+  let finalTasks = enrichedTasks;
+
+  if (filters.languages.length > 0 && !filters.languages.includes('Other')) {
+    finalTasks = finalTasks.filter(task => 
+      filters.languages.some(lang => task.detectedLanguage?.toLowerCase().includes(lang.toLowerCase()))
+    );
+  }
+
+
+  return finalTasks.sort((a, b) => b.dateCreated - a.dateCreated);
 }
 
 export async function exportTasks(tasks: Task[], format: "csv" | "md"): Promise<string> {

@@ -10,6 +10,7 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
+import { languages } from '@/lib/types';
 
 const DetectTaskLanguageInputSchema = z.object({
   description: z
@@ -20,7 +21,7 @@ export type DetectTaskLanguageInput = z.infer<typeof DetectTaskLanguageInputSche
 
 const DetectTaskLanguageOutputSchema = z.object({
   language: z
-    .string()
+    .enum([...languages])
     .describe('The detected programming language of the task. e.g. Python, JavaScript, PHP, Lua, etc.'),
 });
 export type DetectTaskLanguageOutput = z.infer<typeof DetectTaskLanguageOutputSchema>;
@@ -35,8 +36,8 @@ const detectTaskLanguagePrompt = ai.definePrompt({
   output: {schema: DetectTaskLanguageOutputSchema},
   prompt: `You are an expert software development language detection agent.
 
-  Given a task description, you will determine the primary programming language used in the task.
-  If no specific language is mentioned or can be inferred, respond with "Unknown".
+  Given a task title and description, you will determine the primary programming language used in the task from the following list: ${languages.join(', ')}.
+  If no specific language is mentioned or can be inferred, respond with "Other".
 
   Description: {{{description}}}
   `,
