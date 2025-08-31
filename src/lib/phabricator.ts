@@ -60,7 +60,7 @@ export async function searchPhabricatorTasks(constraints: object = {}, attachmen
         if(Array.isArray(value)) {
             value.forEach((v, i) => form.append(`constraints[${key}][${i}]`, v))
         } else {
-            form.append(`constraints[${key}]`, value);
+             if (value) form.append(`constraints[${key}]`, value);
         }
     });
 
