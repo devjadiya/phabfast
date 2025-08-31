@@ -294,25 +294,24 @@ const Page: FC = () => {
       const blob = new Blob([fileContent], { type: format === 'csv' ? 'text/csv' : 'text/markdown' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
-      a.href = url;
-      a.download = `phabfast-tasks.${format}`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-       toast({
-        title: "Export Successful",
-        description: `Your tasks have been exported as a ${format.toUpperCase()} file.`,
-      });
-    } catch (error) {
-       toast({
-        variant: "destructive",
-        title: "Export Failed",
-        description: "There was an error exporting your tasks.",
-      });
-    }
-  };
-  
+a.href = url;
+a.download = `phabfast-tasks.${format}`;
+document.body.appendChild(a);
+a.click();
+document.body.removeChild(a);
+URL.revokeObjectURL(url);
+toast({
+title: "Export Successful",
+description: `Your tasks have been exported as a ${format.toUpperCase()} file.`,
+});
+} catch (error) {
+toast({
+variant: "destructive",
+title: "Export Failed",
+description: "There was an error exporting your tasks.",
+});
+}
+};
   const removeFilterChip = (filterType: keyof Filters, value: any) => {
     if (filterType === 'languages' || filterType === 'difficulties') {
       const currentValues = filters[filterType] as string[];
