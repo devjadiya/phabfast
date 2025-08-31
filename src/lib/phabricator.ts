@@ -39,14 +39,20 @@ interface PhabricatorTask {
 
 interface PhabricatorResponse {
     result: {
-        data: PhabricatorTask[]
+        data: PhabricatorTask[],
+        cursor: {
+          limit: number;
+          after: string | null;
+          before: string | null;
+          order: string;
+        }
     },
     error_code: string | null,
     error_info: string | null
 }
 
 
-export async function searchPhabricatorTasks(constraints: object = {}, attachments: object = {}): Promise<Task[]> {
+export async function searchPhabricatorTasks(constraints: object = {}, attachments: object = {}, after?: string): Promise<{ tasks: Task[], nextCursor: string | null }> {
   if (!PHABRICATOR_API_URL || !PHABRICATOR_API_TOKEN) {
     console.error("Phabricator API URL or Token not set in .env");
     throw new Error("Phabricator API URL or Token not set.");
@@ -67,6 +73,10 @@ export async function searchPhabricatorTasks(constraints: object = {}, attachmen
     Object.entries(attachments).forEach(([key, value]) => {
         form.append(`attachments[${key}]`, value.toString());
     });
+    
+    if (after) {
+        form.append('after', after);
+    }
     
     const response = await fetch(
       `${PHABRICATOR_API_URL}/maniphest.search`,
@@ -96,9 +106,9 @@ export async function searchPhabricatorTasks(constraints: object = {}, attachmen
 
     const phabTasks: PhabricatorTask[] = data.result.data;
 
-    if (!phabTasks) return [];
+    if (!phabTasks) return { tasks: [], nextCursor: null };
 
-    return phabTasks.map((phabTask: PhabricatorTask) => ({
+    const tasks = phabTasks.map((phabTask: PhabricatorTask) => ({
       id: phabTask.id,
       phid: phabTask.phid,
       title: phabTask.fields.name,
@@ -119,6 +129,8 @@ export async function searchPhabricatorTasks(constraints: object = {}, attachmen
       phabricatorUrl: `${process.env.PHABRICATOR_API_URL?.replace('/api', '')}/T${phabTask.id}`,
       createdAt: fromUnixTime(phabTask.fields.dateCreated).toISOString().split('T')[0],
     }));
+
+    return { tasks, nextCursor: data.result.cursor.after };
 
   } catch (error) {
     console.error('Failed to fetch tasks from Phabricator:', error);

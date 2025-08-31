@@ -19,7 +19,7 @@ function toEpoch(dateStr: string, endOfDay = false) {
 
 export async function POST(req: Request) {
   try {
-    const filters: Filters = await req.json();
+    const { filters, after } = await req.json();
     
     const constraints: any = {
       statuses: filters.openOnly ? ['open'] : [],
@@ -57,14 +57,17 @@ export async function POST(req: Request) {
       subscribers: 1,
     };
 
-    let tasks = await searchPhabricatorTasks(constraints, attachments);
+    let { tasks, nextCursor } = await searchPhabricatorTasks(constraints, attachments, after);
 
     // Post-fetch filtering for subscribers
     if (filters.maxSubscribers !== undefined) {
       tasks = tasks.filter(task => task.subscribers <= filters.maxSubscribers);
     }
     
-    return NextResponse.json(tasks.sort((a, b) => b.dateCreated - a.dateCreated));
+    return NextResponse.json({
+        tasks: tasks.sort((a, b) => b.dateCreated - a.dateCreated),
+        nextCursor
+    });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }

@@ -12,7 +12,7 @@ import { difficulties, languages } from "@/lib/types";
 import Header from "@/components/header";
 import FilterBar from "@/components/filter-bar";
 import TaskFeed from "@/components/task-feed";
-import { X, Download } from "lucide-react";
+import { X, Download, Loader2 } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -42,14 +42,14 @@ const INITIAL_FILTERS: Filters = {
   text: '',
 };
 
-async function fetchTasksFromApi(filters: Filters): Promise<Task[]> {
+async function fetchTasksFromApi(filters: Filters, after?: string): Promise<{tasks: Task[], nextCursor: string | null}> {
   try {
     const response = await fetch('/api/tasks/search', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
         },
-        body: JSON.stringify(filters)
+        body: JSON.stringify({ filters, after })
     });
 
     if (!response.ok) {
@@ -57,8 +57,8 @@ async function fetchTasksFromApi(filters: Filters): Promise<Task[]> {
         throw new Error(errorData.error || 'Failed to fetch tasks');
     }
 
-    const tasks: Task[] = await response.json();
-    return tasks;
+    const data: {tasks: Task[], nextCursor: string | null} = await response.json();
+    return data;
   } catch (error) {
     console.error('Failed to fetch tasks:', error);
     throw error;
@@ -135,11 +135,13 @@ const Page: FC = () => {
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
   const [searchText, setSearchText] = useState('');
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const [isFetchingMore, setIsFetchingMore] = useState(false);
 
-  const handleFetchTasks = useCallback(() => {
+  const handleFetchTasks = useCallback((newFilters: Filters) => {
     startTransition(async () => {
       try {
-        const fetchedTasks = await fetchTasksFromApi(filters);
+        const { tasks: fetchedTasks, nextCursor: newNextCursor } = await fetchTasksFromApi(newFilters);
         
         // Set initial tasks without enrichment for faster display
         const initialTasks = fetchedTasks.map(task => ({
@@ -148,6 +150,7 @@ const Page: FC = () => {
             detectedLanguage: 'Unknown' as Language
         }));
         setTasks(initialTasks); 
+        setNextCursor(newNextCursor);
         
         // Enrich tasks one by one
         fetchedTasks.forEach(async (task, index) => {
@@ -168,11 +171,32 @@ const Page: FC = () => {
         });
       }
     });
-  }, [filters, toast]);
+  }, [toast]);
+
+  const handleLoadMore = async () => {
+    if (!nextCursor || isFetchingMore) return;
+
+    setIsFetchingMore(true);
+    try {
+        const { tasks: newTasks, nextCursor: newNextCursor } = await fetchTasksFromApi(filters, nextCursor);
+        const enrichedNewTasks = await Promise.all(newTasks.map(task => enrichTask(task)));
+        setTasks(prevTasks => [...prevTasks, ...enrichedNewTasks]);
+        setNextCursor(newNextCursor);
+    } catch (error) {
+        console.error("Failed to load more tasks:", error);
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Failed to load more tasks.",
+        });
+    } finally {
+        setIsFetchingMore(false);
+    }
+  }
 
   useEffect(() => {
-    handleFetchTasks();
-  }, [handleFetchTasks]);
+    handleFetchTasks(filters);
+  }, [filters, handleFetchTasks]);
   
   const handleFilterChange = (newFilters: Partial<Filters>) => {
     setFilters(prev => ({ ...prev, ...newFilters, query: prev.query && newFilters.query !== null ? null : prev.query }));
@@ -197,7 +221,7 @@ const Page: FC = () => {
   }
 
   const handleRefresh = () => {
-    handleFetchTasks();
+    handleFetchTasks(filters);
     toast({
       title: "Tasks Refreshed",
       description: "The task list has been updated.",
@@ -328,6 +352,20 @@ const Page: FC = () => {
                 </div>
             </div>
             <TaskFeed tasks={sortedTasks} isLoading={isPending} />
+            {nextCursor && (
+                <div className="mt-6 flex justify-center">
+                    <Button onClick={handleLoadMore} disabled={isFetchingMore}>
+                        {isFetchingMore ? (
+                            <>
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                Loading...
+                            </>
+                        ) : (
+                           "Load More"
+                        )}
+                    </Button>
+                </div>
+            )}
           </div>
         </div>
       </main>
