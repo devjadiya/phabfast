@@ -150,11 +150,11 @@ const FilterBar: FC<FilterBarProps> = ({ filters, onFilterChange, onQueryChange 
         </div>
         
         <div className="md:col-span-4 space-y-2">
-            <Label htmlFor="subscribers" className="flex items-center">
+            <Label htmlFor="subscribers-slider" className="flex items-center">
                 Max Subscribers: {maxSubscribers}
             </Label>
             <Slider
-                id="subscribers"
+                id="subscribers-slider"
                 min={0}
                 max={20}
                 step={1}
