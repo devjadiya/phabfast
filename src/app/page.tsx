@@ -228,7 +228,7 @@ const Page: FC = () => {
   };
   
   const handleQueryChange = (query: TaskQuery | null) => {
-    setFilters(prev => ({ ...INITIAL_FILTERS, query }));
+    setFilters(prev => ({ ...INITIAL_FILTERS, query: query, languages: [], difficulties: [] }));
   };
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -236,7 +236,8 @@ const Page: FC = () => {
   }
 
   const handleSearchSubmit = () => {
-     setFilters(prev => ({...prev, query: null, text: searchText}))
+     setFilters(prev => ({...prev, query: null, text: searchText}));
+     setSearchText('');
   }
   
   const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -404,3 +405,5 @@ const Page: FC = () => {
 };
 
 export default Page;
+
+    
