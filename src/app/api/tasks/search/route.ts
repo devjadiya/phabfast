@@ -37,14 +37,9 @@ export async function POST(req: Request) {
     
     const constraints: any = {};
     const projectConstraints: string[] = [];
-    let queryParts: string[] = [];
-
+    
     if (filters.openOnly) {
         constraints.statuses = ['open'];
-    }
-    
-    if (filters.text) {
-        queryParts.push(filters.text);
     }
     
     if (filters.query && projectPhidMap[filters.query]) {
@@ -55,8 +50,9 @@ export async function POST(req: Request) {
         constraints.projects = projectConstraints;
     }
     
-    if(queryParts.length > 0) {
-        constraints.query = queryParts.join(' ');
+    // Add full text search as a fallback/broadener
+    if (filters.text) {
+        constraints.query = filters.text;
     }
     
     if (filters.dateRange?.from) {
