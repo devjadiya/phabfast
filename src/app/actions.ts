@@ -38,8 +38,22 @@ interface PhabricatorTask {
   }
 }
 
+interface GerritChange {
+  id: string;
+  project: string;
+  branch: string;
+  change_id: string;
+  subject: string;
+  status: string;
+  created: string;
+  updated: string;
+  _number: number;
+}
+
+
 const PHABRICATOR_API_URL = process.env.PHABRICATOR_API_URL;
 const PHABRICATOR_API_TOKEN = process.env.PHABRICATOR_API_TOKEN;
+const GERRIT_API_URL = process.env.GERRIT_API_URL;
 
 async function fetchPhabricatorTasks(constraints: object = {}, attachments: object = {}): Promise<PhabricatorTask[]> {
   if (!PHABRICATOR_API_URL || !PHABRICATOR_API_TOKEN) {
@@ -67,6 +81,26 @@ async function fetchPhabricatorTasks(constraints: object = {}, attachments: obje
     console.error('Failed to fetch tasks from Phabricator:', error);
     return [];
   }
+}
+
+async function fetchGerritPatch(taskId: number): Promise<string | undefined> {
+  if (!GERRIT_API_URL) {
+    return undefined;
+  }
+  try {
+    // Gerrit API returns a JSON array prefixed with )]}'
+    const response = await axios.get(`${GERRIT_API_URL}/changes/?q=topic:T${taskId}&n=1`);
+    const sanitizedJSON = response.data.replace(")]}'", "");
+    const changes: GerritChange[] = JSON.parse(sanitizedJSON);
+    
+    if (changes.length > 0) {
+      return `${GERRIT_API_URL}/c/${changes[0]._number}`;
+    }
+  } catch (error) {
+    // Not all tasks will have patches, so we can often ignore errors
+    // console.error(`Failed to fetch Gerrit patch for task ${taskId}:`, error);
+  }
+  return undefined;
 }
 
 
@@ -135,20 +169,30 @@ export async function getTasks(filters: Filters): Promise<Task[]> {
   
   tasks = tasks.filter(task => task.subscribers <= filters.maxSubscribers);
 
-  // Language detection using Genkit flow
-  const tasksWithLanguage = await Promise.all(
+  // Language detection and Gerrit patch fetching
+  const enrichedTasks = await Promise.all(
     tasks.map(async (task) => {
+      let detectedLanguage = "Unknown";
+      let gerritUrl: string | undefined;
+
       try {
-        const result = await detectTaskLanguage({ description: task.description });
-        return { ...task, detectedLanguage: result.language };
+        const [langResult, gerritResult] = await Promise.all([
+          detectTaskLanguage({ description: task.description }),
+          fetchGerritPatch(task.id),
+        ]);
+        
+        detectedLanguage = langResult.language;
+        gerritUrl = gerritResult;
+
       } catch (error) {
-        console.error(`Failed to detect language for task ${task.id}:`, error);
-        return { ...task, detectedLanguage: "Unknown" }; // Fallback
+        console.error(`Failed to enrich task ${task.id}:`, error);
       }
+
+      return { ...task, detectedLanguage, gerritUrl };
     })
   );
 
-  return tasksWithLanguage.sort((a, b) => b.dateCreated - a.dateCreated);
+  return enrichedTasks.sort((a, b) => b.dateCreated - a.dateCreated);
 }
 
 export async function exportTasks(tasks: Task[], format: "csv" | "md"): Promise<string> {
