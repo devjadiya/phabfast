@@ -13,7 +13,7 @@ interface LoadMoreProps {
 export default function LoadMore({ onLoadMore, isFetchingMore }: LoadMoreProps) {
   const { ref, inView } = useInView({
     threshold: 0,
-    triggerOnce: false, // Keep observing
+    triggerOnce: false, 
   });
 
   useEffect(() => {

@@ -184,26 +184,11 @@ const Page: FC = () => {
         const order = sortOption === 'dateCreated' ? 'newest' : (sortOption === 'subscribers' ? 'priority' : undefined);
         const { tasks: newTasks, nextCursor: newNextCursor } = await fetchTasksFromApi(filters, nextCursor, order);
         
-        const initialNewTasks = newTasks.map(task => ({
-            ...task,
-            difficulty: 'Medium' as Difficulty,
-            detectedLanguage: 'Unknown' as Language
-        }));
-        setTasks(prevTasks => [...prevTasks, ...initialNewTasks]);
         setNextCursor(newNextCursor);
 
-        newTasks.forEach(async (task) => {
-            const enrichedTask = await enrichTask(task);
-            setTasks(prevTasks => {
-                const newTasks = [...prevTasks];
-                const taskIndex = newTasks.findIndex(t => t.id === enrichedTask.id);
-                if (taskIndex !== -1) {
-                  newTasks[taskIndex] = enrichedTask;
-                  return newTasks;
-                }
-                return [...newTasks, enrichedTask];
-            });
-        });
+        const enrichedTasks = await Promise.all(newTasks.map(enrichTask));
+        setTasks(prevTasks => [...prevTasks, ...enrichedTasks]);
+
 
     } catch (error) {
         console.error("Failed to load more tasks:", error);
@@ -228,7 +213,13 @@ const Page: FC = () => {
   }, [filters, handleFetchTasks]);
   
   const handleFilterChange = (newFilters: Partial<Filters>) => {
-    setFilters(prev => ({ ...prev, ...newFilters }));
+    const combinedFilters = { ...filters, ...newFilters };
+    if (newFilters.languages?.length || newFilters.difficulties?.length) {
+      // Keep query if other filters are applied
+      setFilters(combinedFilters);
+    } else {
+      setFilters(prev => ({ ...prev, ...newFilters }));
+    }
   };
   
   const handleQueryChange = (query: TaskQuery | null) => {
