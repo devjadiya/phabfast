@@ -1,17 +1,32 @@
 "use client";
 
 import type { FC } from "react";
-import { useState, useEffect, useCallback, useTransition } from "react";
+import { useState, useEffect, useCallback, useTransition, useMemo } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
-import type { Task, Filters, TaskQuery } from "@/lib/types";
+import type { Task, Filters, TaskQuery, Difficulty, Language, SortOption } from "@/lib/types";
+import { difficulties, languages } from "@/lib/types";
 import Header from "@/components/header";
 import FilterBar from "@/components/filter-bar";
 import TaskFeed from "@/components/task-feed";
-import { X } from "lucide-react";
+import { X, Download } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+
 
 const INITIAL_FILTERS: Filters = {
   dateRange: {
@@ -91,6 +106,7 @@ async function exportTasks(tasks: Task[], format: "csv" | "md"): Promise<string>
 const Page: FC = () => {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [filters, setFilters] = useState<Filters>(INITIAL_FILTERS);
+  const [sortOption, setSortOption] = useState<SortOption>('dateCreated');
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
   const [searchText, setSearchText] = useState('');
@@ -144,6 +160,27 @@ const Page: FC = () => {
       description: "The task list has been updated.",
     });
   };
+  
+  const sortedTasks = useMemo(() => {
+    const difficultyOrder: Difficulty[] = ['Easy', 'Medium', 'Hard'];
+    const languageOrder: Language[] = [...languages, 'Unknown'];
+
+    return [...tasks].sort((a, b) => {
+        switch(sortOption) {
+            case 'dateCreated':
+                return b.dateCreated - a.dateCreated;
+            case 'subscribers':
+                return a.subscribers - b.subscribers;
+            case 'difficulty': {
+                const difficultyA = (a as any).difficulty || 'Medium';
+                const difficultyB = (b as any).difficulty || 'Medium';
+                return difficultyOrder.indexOf(difficultyA) - difficultyOrder.indexOf(difficultyB);
+            }
+            default:
+                return 0;
+        }
+    });
+  }, [tasks, sortOption]);
 
   const handleExport = async (format: "csv" | "md") => {
     try {
@@ -186,12 +223,10 @@ const Page: FC = () => {
   ];
 
   return (
+    <>
     <div className="flex min-h-screen w-full flex-col bg-background">
       <Header
-        onQueryChange={handleQueryChange}
         onRefresh={handleRefresh}
-        onExport={handleExport}
-        activeQuery={filters.query}
         searchText={searchText}
         onSearchChange={handleSearchChange}
         onSearchSubmit={handleSearchSubmit}
@@ -225,13 +260,44 @@ const Page: FC = () => {
                 <p className="text-sm text-muted-foreground">
                     Found {tasks.length} {tasks.length === 1 ? 'task' : 'tasks'}.
                 </p>
+                <div className="flex items-center gap-2">
+                    <span className="text-sm text-muted-foreground">Sort by:</span>
+                     <Select value={sortOption} onValueChange={(value) => setSortOption(value as SortOption)}>
+                        <SelectTrigger className="w-[180px]">
+                            <SelectValue placeholder="Sort by" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="dateCreated">Date</SelectItem>
+                            <SelectItem value="subscribers">Popularity</SelectItem>
+                            <SelectItem value="difficulty">Simplicity</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
             </div>
-            <TaskFeed tasks={tasks} isLoading={isPending} />
+            <TaskFeed tasks={sortedTasks} isLoading={isPending} />
           </div>
         </div>
       </main>
       <Toaster />
     </div>
+    <div className="fixed bottom-4 right-4 z-50">
+        <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="icon" aria-label="Export tasks">
+                    <Download className="h-4 w-4" />
+                </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => handleExport('csv')}>
+                    Export as CSV
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleExport('md')}>
+                    Export as Markdown
+                </DropdownMenuItem>
+            </DropdownMenuContent>
+        </DropdownMenu>
+    </div>
+    </>
   );
 };
 

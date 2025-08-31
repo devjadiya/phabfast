@@ -1,20 +1,10 @@
 import type { FC } from 'react';
 import { Button } from '@/components/ui/button';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
-import { BrainCircuit, RefreshCw, Download, Search } from 'lucide-react';
-import type { TaskQuery } from '@/lib/types';
+import { BrainCircuit, RefreshCw, Search } from 'lucide-react';
 
 interface HeaderProps {
-  onQueryChange: (query: TaskQuery | null) => void;
   onRefresh: () => void;
-  onExport: (format: 'csv' | 'md') => void;
-  activeQuery: TaskQuery | null;
   searchText: string;
   onSearchChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onSearchSubmit: () => void;
@@ -23,7 +13,6 @@ interface HeaderProps {
 
 const Header: FC<HeaderProps> = ({ 
   onRefresh, 
-  onExport, 
   searchText,
   onSearchChange,
   onSearchSubmit,
@@ -53,21 +42,6 @@ const Header: FC<HeaderProps> = ({
           <Button variant="outline" size="icon" onClick={onRefresh} aria-label="Refresh tasks">
             <RefreshCw className="h-4 w-4" />
           </Button>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="icon" aria-label="Export tasks">
-                <Download className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => onExport('csv')}>
-                Export as CSV
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => onExport('md')}>
-                Export as Markdown
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
         </div>
       </div>
     </header>

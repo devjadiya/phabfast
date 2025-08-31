@@ -25,7 +25,7 @@ export interface Task {
 export type Difficulty = "Easy" | "Medium" | "Hard";
 export const difficulties: Difficulty[] = ["Easy", "Medium", "Hard"];
 
-export type Language = "JavaScript" | "Python" | "Lua" | "PHP" | "Other";
+export type Language = "JavaScript" | "Python" | "Lua" | "PHP" | "Other" | "Unknown";
 export const languages: Language[] = ["JavaScript", "Python", "Lua", "PHP", "Other"];
 
 export type TaskQuery = 'good-first' | 'bot-dev' | 'core' | 'gadgets' | 'web-tools';
@@ -42,3 +42,5 @@ export interface Filters {
   query: TaskQuery | null;
   text?: string;
 }
+
+export type SortOption = 'dateCreated' | 'subscribers' | 'difficulty';
