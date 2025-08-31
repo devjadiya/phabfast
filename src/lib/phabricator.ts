@@ -79,11 +79,17 @@ export async function searchPhabricatorTasks(constraints: object = {}, attachmen
       }
     );
     
+    if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Phabricator API Error:', errorText);
+        throw new Error(`Phabricator API request failed: ${response.statusText}`);
+    }
+
     const data: PhabricatorResponse = await response.json();
     
     if (data.error_code) {
       console.error('Phabricator API Error:', data.error_info);
-      return [];
+      throw new Error(data.error_info || 'Unknown Phabricator API Error');
     }
 
     const phabTasks: PhabricatorTask[] = data.result.data;

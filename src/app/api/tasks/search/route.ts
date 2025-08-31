@@ -51,15 +51,19 @@ export async function POST(req: Request) {
     }
     
     // AI Language Detection
-    tasks = await Promise.all(
-      tasks.map(async (task) => {
-        const { language } = await detectTaskLanguage({ description: `${task.title} ${task.description}` });
-        return { ...task, detectedLanguage: language };
-      })
+    const languageDetectionPromises = tasks.map(task => 
+        detectTaskLanguage({ description: `${task.title} ${task.description}` })
     );
+    const languageResults = await Promise.all(languageDetectionPromises);
+
+    let tasksWithLanguage = tasks.map((task, index) => ({
+        ...task,
+        detectedLanguage: languageResults[index].language
+    }));
+
 
     if (filters.languages && filters.languages.length > 0) {
-      tasks = tasks.filter(task => 
+      tasksWithLanguage = tasksWithLanguage.filter(task => 
         task.detectedLanguage && (filters.languages as string[]).includes(task.detectedLanguage)
       );
     }
@@ -67,7 +71,7 @@ export async function POST(req: Request) {
     // Difficulty filtering would happen here if we had it
     // if (filters.difficulties && filters.difficulties.length > 0) { ... }
 
-    return NextResponse.json(tasks.sort((a, b) => b.dateCreated - a.dateCreated));
+    return NextResponse.json(tasksWithLanguage.sort((a, b) => b.dateCreated - a.dateCreated));
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
