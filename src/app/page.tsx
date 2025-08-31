@@ -56,31 +56,47 @@ async function fetchTasksFromApi(filters: Filters): Promise<Task[]> {
         throw new Error(errorData.error || 'Failed to fetch tasks');
     }
 
-    let tasks: Task[] = await response.json();
-
-    tasks = await Promise.all(
-      tasks.map(async (task) => {
-        try {
-          const gerritResponse = await fetch(`/api/gerrit/${task.id}`);
-          if (gerritResponse.ok) {
-            const gerritData = await gerritResponse.json();
-            if (gerritData.url) {
-              return { ...task, gerritUrl: gerritData.url };
-            }
-          }
-        } catch (error) {
-            // gerrit url is optional
-        }
-        return task;
-      })
-    );
-
-
+    const tasks: Task[] = await response.json();
     return tasks;
   } catch (error) {
     console.error('Failed to fetch tasks:', error);
     throw error;
   }
+}
+
+async function enrichTasks(tasks: Task[]): Promise<Task[]> {
+    const enrichedTasks = await Promise.all(
+        tasks.map(async (task) => {
+            let detectedLanguage: Language | 'Unknown' = 'Unknown';
+            let gerritUrl: string | undefined = undefined;
+            let difficulty: Difficulty | 'Medium' = 'Medium';
+
+            try {
+                // Language Detection
+                const langResponse = await fetch('/api/tasks/detect-language', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ description: `${task.title} ${task.description}` })
+                });
+                if (langResponse.ok) {
+                    const langData = await langResponse.json();
+                    detectedLanguage = langData.language;
+                }
+            } catch (e) { /* ignore */ }
+
+            try {
+                // Gerrit Patch
+                const gerritResponse = await fetch(`/api/gerrit/${task.id}`);
+                if (gerritResponse.ok) {
+                    const gerritData = await gerritResponse.json();
+                    gerritUrl = gerritData.url;
+                }
+            } catch (e) { /* ignore */ }
+            
+            return { ...task, detectedLanguage, gerritUrl, difficulty };
+        })
+    );
+    return enrichedTasks;
 }
 
 async function exportTasks(tasks: Task[], format: "csv" | "md"): Promise<string> {
@@ -115,7 +131,9 @@ const Page: FC = () => {
     startTransition(async () => {
       try {
         const fetchedTasks = await fetchTasksFromApi(filters);
-        setTasks(fetchedTasks);
+        setTasks(fetchedTasks); // Set base tasks first for responsiveness
+        const enriched = await enrichTasks(fetchedTasks);
+        setTasks(enriched); // Set enriched tasks
       } catch (error) {
         console.error("Failed to fetch tasks:", error);
         toast({
@@ -165,7 +183,17 @@ const Page: FC = () => {
     const difficultyOrder: Difficulty[] = ['Easy', 'Medium', 'Hard'];
     const languageOrder: Language[] = [...languages, 'Unknown'];
 
-    return [...tasks].sort((a, b) => {
+    let tasksToFilter = [...tasks];
+
+    // Client-side filtering for difficulties, as AI detection is now on the client
+    if (filters.difficulties && filters.difficulties.length > 0) {
+        tasksToFilter = tasksToFilter.filter(task => {
+            const taskDifficulty = (task as any).difficulty || 'Medium'; // Default if not detected
+            return filters.difficulties.includes(taskDifficulty);
+        });
+    }
+
+    return tasksToFilter.sort((a, b) => {
         switch(sortOption) {
             case 'dateCreated':
                 return b.dateCreated - a.dateCreated;
@@ -180,7 +208,7 @@ const Page: FC = () => {
                 return 0;
         }
     });
-  }, [tasks, sortOption]);
+  }, [tasks, sortOption, filters.difficulties]);
 
   const handleExport = async (format: "csv" | "md") => {
     try {
@@ -258,7 +286,7 @@ const Page: FC = () => {
           <div className="mt-8">
             <div className="mb-4 flex items-center justify-between">
                 <p className="text-sm text-muted-foreground">
-                    Found {tasks.length} {tasks.length === 1 ? 'task' : 'tasks'}.
+                    Found {sortedTasks.length} {sortedTasks.length === 1 ? 'task' : 'tasks'}.
                 </p>
                 <div className="flex items-center gap-2">
                     <span className="text-sm text-muted-foreground">Sort by:</span>

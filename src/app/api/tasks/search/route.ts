@@ -50,28 +50,28 @@ export async function POST(req: Request) {
       tasks = tasks.filter(task => task.subscribers <= filters.maxSubscribers);
     }
     
-    // AI Language Detection
-    const languageDetectionPromises = tasks.map(task => 
-        detectTaskLanguage({ description: `${task.title} ${task.description}` })
-    );
-    const languageResults = await Promise.all(languageDetectionPromises);
-
-    let tasksWithLanguage = tasks.map((task, index) => ({
-        ...task,
-        detectedLanguage: languageResults[index].language
-    }));
-
-
+    // AI Language Detection is now moved to the client side to avoid timeouts.
+    // We will still filter by language if provided, but the detection is done on the frontend.
     if (filters.languages && filters.languages.length > 0) {
+      const languageDetectionPromises = tasks.map(task => 
+        detectTaskLanguage({ description: `${task.title} ${task.description}` })
+      );
+      const languageResults = await Promise.all(languageDetectionPromises);
+
+      let tasksWithLanguage = tasks.map((task, index) => ({
+          ...task,
+          detectedLanguage: languageResults[index].language
+      }));
+
       tasksWithLanguage = tasksWithLanguage.filter(task => 
         task.detectedLanguage && (filters.languages as string[]).includes(task.detectedLanguage)
       );
+
+      // Return only the tasks that match the language filter
+      tasks = tasksWithLanguage;
     }
     
-    // Difficulty filtering would happen here if we had it
-    // if (filters.difficulties && filters.difficulties.length > 0) { ... }
-
-    return NextResponse.json(tasksWithLanguage.sort((a, b) => b.dateCreated - a.dateCreated));
+    return NextResponse.json(tasks.sort((a, b) => b.dateCreated - a.dateCreated));
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
