@@ -54,7 +54,7 @@ const SubscriberBar: FC<{ count: number }> = ({ count }) => {
 
 const TaskCard: FC<TaskCardProps> = ({ task }) => {
   return (
-    <Card className="flex h-full flex-col transition-all hover:shadow-lg max-w-sm w-full mx-auto">
+    <Card className="flex h-full flex-col transition-all hover:shadow-lg w-full">
       <CardHeader>
         <div className="flex justify-between items-start">
             <CardTitle className="text-lg font-bold pr-2">
