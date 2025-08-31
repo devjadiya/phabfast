@@ -1,4 +1,3 @@
-import axios from 'axios';
 import type { Task } from '@/lib/types';
 import { fromUnixTime } from 'date-fns';
 
@@ -38,6 +37,15 @@ interface PhabricatorTask {
   }
 }
 
+interface PhabricatorResponse {
+    result: {
+        data: PhabricatorTask[]
+    },
+    error_code: string | null,
+    error_info: string | null
+}
+
+
 export async function searchPhabricatorTasks(constraints: object = {}, attachments: object = {}): Promise<Task[]> {
   if (!PHABRICATOR_API_URL || !PHABRICATOR_API_TOKEN) {
     console.error("Phabricator API URL or Token not set in .env");
@@ -45,21 +53,42 @@ export async function searchPhabricatorTasks(constraints: object = {}, attachmen
   }
 
   try {
-    const response = await axios.post(
+    const form = new URLSearchParams();
+    form.append('api.token', PHABRICATOR_API_TOKEN);
+    
+    Object.entries(constraints).forEach(([key, value]) => {
+        if(Array.isArray(value)) {
+            value.forEach((v, i) => form.append(`constraints[${key}][${i}]`, v))
+        } else {
+            form.append(`constraints[${key}]`, value);
+        }
+    });
+
+    Object.entries(attachments).forEach(([key, value]) => {
+        form.append(`attachments[${key}]`, value.toString());
+    });
+    
+    const response = await fetch(
       `${PHABRICATOR_API_URL}/maniphest.search`,
-      new URLSearchParams({
-        'api.token': PHABRICATOR_API_TOKEN,
-        ...Object.fromEntries(Object.entries(constraints).map(([k, v]) => [`constraints[${k}]`, v])),
-        ...Object.fromEntries(Object.entries(attachments).map(([k, v]) => [`attachments[${k}]`, v])),
-      })
+      {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: form.toString(),
+      }
     );
     
-    if (response.data.error_code) {
-      console.error('Phabricator API Error:', response.data.error_info);
+    const data: PhabricatorResponse = await response.json();
+    
+    if (data.error_code) {
+      console.error('Phabricator API Error:', data.error_info);
       return [];
     }
 
-    const phabTasks: PhabricatorTask[] = response.data.result.data;
+    const phabTasks: PhabricatorTask[] = data.result.data;
+
+    if (!phabTasks) return [];
 
     return phabTasks.map((phabTask: PhabricatorTask) => ({
       id: phabTask.id,
