@@ -1,8 +1,11 @@
+
 import type { FC } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { BrainCircuit, RefreshCw, Search } from 'lucide-react';
+import type { Task } from '@/lib/types';
+import SearchSuggestion from './search-suggestion';
 
 interface HeaderProps {
   onRefresh: () => void;
@@ -10,6 +13,8 @@ interface HeaderProps {
   onSearchChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onSearchSubmit: () => void;
   onSearchKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void;
+  suggestions: Task[];
+  onSuggestionClick: (task: Task) => void;
 }
 
 const Header: FC<HeaderProps> = ({ 
@@ -17,7 +22,9 @@ const Header: FC<HeaderProps> = ({
   searchText,
   onSearchChange,
   onSearchSubmit,
-  onSearchKeyDown
+  onSearchKeyDown,
+  suggestions,
+  onSuggestionClick
 }) => {
   return (
     <header className="sticky top-0 z-20 w-full border-b bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -35,15 +42,27 @@ const Header: FC<HeaderProps> = ({
             <Input 
               id="search-tasks"
               type="search"
-              placeholder="Search tasks..."
+              placeholder="Search tasks by ID or keyword..."
               className="pr-10"
               value={searchText}
               onChange={onSearchChange}
               onKeyDown={onSearchKeyDown}
+              autoComplete="off"
             />
             <Button type="submit" size="icon" className="absolute right-1 h-8 w-8" onClick={onSearchSubmit} aria-label="Search">
                 <Search className="h-4 w-4" />
             </Button>
+            {suggestions.length > 0 && (
+                <div className="absolute top-full mt-2 w-full rounded-md border bg-popover text-popover-foreground shadow-md z-30">
+                    <ul className="py-1">
+                        {suggestions.map(task => (
+                           <li key={task.id}>
+                             <SearchSuggestion task={task} onClick={() => onSuggestionClick(task)} />
+                           </li>
+                        ))}
+                    </ul>
+                </div>
+            )}
           </div>
           <Button variant="outline" size="icon" onClick={onRefresh} aria-label="Refresh tasks">
             <RefreshCw className="h-4 w-4" />

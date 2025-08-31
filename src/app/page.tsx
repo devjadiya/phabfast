@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import type { FC } from "react";
@@ -138,6 +139,7 @@ const Page: FC = () => {
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
   const [searchText, setSearchText] = useState('');
+  const [suggestions, setSuggestions] = useState<Task[]>([]);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [isFetchingMore, setIsFetchingMore] = useState(false);
 
@@ -224,11 +226,42 @@ const Page: FC = () => {
     };
   }, [filters, handleFetchTasks]);
   
+  useEffect(() => {
+    if (searchText.length < 2) {
+      setSuggestions([]);
+      return;
+    }
+
+    const fetchSuggestions = async () => {
+      try {
+        const response = await fetch('/api/tasks/suggest', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ query: searchText }),
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setSuggestions(data.tasks);
+        }
+      } catch (error) {
+        console.error("Failed to fetch suggestions:", error);
+        setSuggestions([]);
+      }
+    };
+
+    const handler = setTimeout(() => {
+      fetchSuggestions();
+    }, 300); // Debounce suggestion fetching
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [searchText]);
+
   const handleFilterChange = (newFilters: Partial<Filters>) => {
     const currentQuery = filters.query;
     const combinedFilters = { ...filters, ...newFilters };
     
-    // If we're applying a language or difficulty filter, preserve the existing track query.
     if (newFilters.languages?.length || newFilters.difficulties?.length) {
       combinedFilters.query = currentQuery;
     }
@@ -246,8 +279,15 @@ const Page: FC = () => {
 
   const handleSearchSubmit = () => {
      setFilters(prev => ({...prev, query: null, text: searchText}));
-     setSearchText('');
+     setSuggestions([]);
+     // Don't clear searchText here, so user can see what they searched for
   }
+  
+  const handleSuggestionClick = (task: Task) => {
+    setSearchText(`T${task.id}`);
+    setSuggestions([]);
+    setFilters({ ...INITIAL_FILTERS, query: null, text: `T${task.id}` });
+  };
   
   const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
@@ -286,8 +326,6 @@ const Page: FC = () => {
         return tasksToFilter.sort((a, b) => difficultyOrder.indexOf(a.difficulty) - difficultyOrder.indexOf(b.difficulty));
     }
 
-    // For 'dateCreated', we rely on the API's 'newest' order, so no extra client-side sort is needed
-    // unless the order prop wasn't sent.
     if (sortOption === 'dateCreated') {
         return tasksToFilter.sort((a, b) => b.dateCreated - a.dateCreated);
     }
@@ -343,6 +381,8 @@ description: "There was an error exporting your tasks.",
         onSearchChange={handleSearchChange}
         onSearchSubmit={handleSearchSubmit}
         onSearchKeyDown={handleSearchKeyDown}
+        suggestions={suggestions}
+        onSuggestionClick={handleSuggestionClick}
       />
       <main className="flex-1">
         <div className="container mx-auto px-4 py-8 md:px-6">
@@ -415,5 +455,3 @@ description: "There was an error exporting your tasks.",
 };
 
 export default Page;
-
-    
