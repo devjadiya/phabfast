@@ -16,7 +16,7 @@ function toEpoch(dateStr: string, endOfDay = false) {
 
 export async function POST(req: Request) {
   try {
-    const { filters, after } = await req.json();
+    const { filters, after, order } = await req.json();
     
     const constraints: any = {};
     const queryParts: string[] = [];
@@ -53,14 +53,14 @@ export async function POST(req: Request) {
       subscribers: 1,
     };
 
-    let { tasks, nextCursor } = await searchPhabricatorTasks(constraints, attachments, after);
+    let { tasks, nextCursor } = await searchPhabricatorTasks(constraints, attachments, after, order);
 
     if (filters.maxSubscribers !== undefined) {
       tasks = tasks.filter(task => task.subscribers <= filters.maxSubscribers);
     }
     
     return NextResponse.json({
-        tasks: tasks.sort((a, b) => b.dateCreated - a.dateCreated),
+        tasks: tasks,
         nextCursor
     });
   } catch (error: any) {

@@ -45,5 +45,3 @@ export interface Filters {
 }
 
 export type SortOption = 'dateCreated' | 'subscribers' | 'difficulty';
-
-    

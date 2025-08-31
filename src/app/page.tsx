@@ -43,14 +43,14 @@ const INITIAL_FILTERS: Filters = {
   text: '',
 };
 
-async function fetchTasksFromApi(filters: Filters, after?: string): Promise<{tasks: Task[], nextCursor: string | null}> {
+async function fetchTasksFromApi(filters: Filters, after?: string, order?: SortOption): Promise<{tasks: Task[], nextCursor: string | null}> {
   try {
     const response = await fetch('/api/tasks/search', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ filters, after })
+        body: JSON.stringify({ filters, after, order })
     });
 
     if (!response.ok) {
@@ -139,7 +139,8 @@ const Page: FC = () => {
   const handleFetchTasks = useCallback((newFilters: Filters) => {
     startTransition(async () => {
       try {
-        const { tasks: fetchedTasks, nextCursor: newNextCursor } = await fetchTasksFromApi(newFilters);
+        const order = sortOption === 'dateCreated' ? 'newest' : (sortOption === 'subscribers' ? 'priority' : undefined);
+        const { tasks: fetchedTasks, nextCursor: newNextCursor } = await fetchTasksFromApi(newFilters, undefined, order);
         
         const initialTasks = fetchedTasks.map(task => ({
             ...task,
@@ -171,14 +172,15 @@ const Page: FC = () => {
         });
       }
     });
-  }, [toast]);
+  }, [toast, sortOption]);
 
   const handleLoadMore = useCallback(async () => {
     if (!nextCursor || isFetchingMore) return;
 
     setIsFetchingMore(true);
     try {
-        const { tasks: newTasks, nextCursor: newNextCursor } = await fetchTasksFromApi(filters, nextCursor);
+        const order = sortOption === 'dateCreated' ? 'newest' : (sortOption === 'subscribers' ? 'priority' : undefined);
+        const { tasks: newTasks, nextCursor: newNextCursor } = await fetchTasksFromApi(filters, nextCursor, order);
         
         const initialNewTasks = newTasks.map(task => ({
             ...task,
@@ -211,7 +213,7 @@ const Page: FC = () => {
     } finally {
         setIsFetchingMore(false);
     }
-  }, [nextCursor, isFetchingMore, filters, toast]);
+  }, [nextCursor, isFetchingMore, filters, toast, sortOption]);
 
   useEffect(() => {
     const handler = setTimeout(() => {
@@ -224,7 +226,7 @@ const Page: FC = () => {
   }, [filters, handleFetchTasks]);
   
   const handleFilterChange = (newFilters: Partial<Filters>) => {
-    setFilters(prev => ({ ...prev, ...newFilters, text: '' }));
+    setFilters(prev => ({ ...prev, ...newFilters, text: prev.text }));
   };
   
   const handleQueryChange = (query: TaskQuery | null) => {
@@ -268,20 +270,22 @@ const Page: FC = () => {
       })
     }
 
-    return tasksToFilter.sort((a, b) => {
-        switch(sortOption) {
-            case 'dateCreated':
-                return b.dateCreated - a.dateCreated;
-            case 'subscribers':
-                return a.subscribers - b.subscribers;
-            case 'difficulty': {
-                const difficultyOrder: Difficulty[] = ['Easy', 'Medium', 'Hard'];
-                return difficultyOrder.indexOf(a.difficulty) - difficultyOrder.indexOf(b.difficulty);
-            }
-            default:
-                return 0;
-        }
-    });
+    if (sortOption === 'subscribers') {
+        return tasksToFilter.sort((a, b) => b.subscribers - a.subscribers);
+    }
+
+    if (sortOption === 'difficulty') {
+        const difficultyOrder: Difficulty[] = ['Easy', 'Medium', 'Hard'];
+        return tasksToFilter.sort((a, b) => difficultyOrder.indexOf(a.difficulty) - difficultyOrder.indexOf(b.difficulty));
+    }
+
+    // For 'dateCreated', we rely on the API's 'newest' order, so no extra client-side sort is needed
+    // unless the order prop wasn't sent.
+    if (sortOption === 'dateCreated') {
+        return tasksToFilter.sort((a, b) => b.dateCreated - a.dateCreated);
+    }
+
+    return tasksToFilter;
   }, [tasks, sortOption, filters.difficulties, filters.languages]);
 
   const handleExport = async (format: "csv" | "md") => {
@@ -405,5 +409,3 @@ const Page: FC = () => {
 };
 
 export default Page;
-
-    
