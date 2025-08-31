@@ -13,7 +13,7 @@ import { difficulties, languages } from "@/lib/types";
 import Header from "@/components/header";
 import FilterBar from "@/components/filter-bar";
 import TaskFeed from "@/components/task-feed";
-import { X, Download, Loader2 } from "lucide-react";
+import { X, Download } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -224,7 +224,7 @@ const Page: FC = () => {
   }, [filters, handleFetchTasks]);
   
   const handleFilterChange = (newFilters: Partial<Filters>) => {
-    setFilters(prev => ({ ...prev, ...newFilters, query: newFilters.query !== undefined ? newFilters.query : prev.query }));
+    setFilters(prev => ({ ...prev, ...newFilters, text: '' }));
   };
   
   const handleQueryChange = (query: TaskQuery | null) => {
@@ -364,7 +364,7 @@ const Page: FC = () => {
                 <div className="flex items-center gap-2">
                     <Label htmlFor="sort-by" className="text-sm text-muted-foreground">Sort by:</Label>
                      <Select value={sortOption} onValueChange={(value) => setSortOption(value as SortOption)}>
-                        <SelectTrigger id="sort-by" className="w-[180px]">
+                        <SelectTrigger id="sort-by" className="w-[180px]" aria-label="Sort by">
                             <SelectValue placeholder="Sort by" />
                         </SelectTrigger>
                         <SelectContent>
