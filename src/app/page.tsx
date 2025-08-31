@@ -6,6 +6,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import LoadMore from "@/components/load-more";
 
 import type { Task, Filters, TaskQuery, Difficulty, Language, SortOption } from "@/lib/types";
 import { difficulties, languages } from "@/lib/types";
@@ -173,15 +174,36 @@ const Page: FC = () => {
     });
   }, [toast]);
 
-  const handleLoadMore = async () => {
+  const handleLoadMore = useCallback(async () => {
     if (!nextCursor || isFetchingMore) return;
 
     setIsFetchingMore(true);
     try {
         const { tasks: newTasks, nextCursor: newNextCursor } = await fetchTasksFromApi(filters, nextCursor);
-        const enrichedNewTasks = await Promise.all(newTasks.map(task => enrichTask(task)));
-        setTasks(prevTasks => [...prevTasks, ...enrichedNewTasks]);
+        
+        const enrichedNewTasksPromise = Promise.all(newTasks.map(task => enrichTask(task)));
+        
+        setTasks(prevTasks => [...prevTasks, ...newTasks.map(task => ({
+            ...task,
+            difficulty: 'Medium' as Difficulty,
+            detectedLanguage: 'Unknown' as Language
+        }))]);
         setNextCursor(newNextCursor);
+        
+        const enrichedNewTasks = await enrichedNewTasksPromise;
+
+        setTasks(prevTasks => {
+            const updatedTasks = [...prevTasks];
+            const baseIndex = prevTasks.length - newTasks.length;
+            enrichedNewTasks.forEach((enrichedTask, index) => {
+                const taskIndex = updatedTasks.findIndex(t => t.id === enrichedTask.id);
+                if (taskIndex !== -1) {
+                  updatedTasks[taskIndex] = enrichedTask;
+                }
+            });
+            return updatedTasks;
+        });
+
     } catch (error) {
         console.error("Failed to load more tasks:", error);
         toast({
@@ -192,7 +214,7 @@ const Page: FC = () => {
     } finally {
         setIsFetchingMore(false);
     }
-  }
+  }, [nextCursor, isFetchingMore, filters, toast]);
 
   useEffect(() => {
     handleFetchTasks(filters);
@@ -352,20 +374,7 @@ const Page: FC = () => {
                 </div>
             </div>
             <TaskFeed tasks={sortedTasks} isLoading={isPending} />
-            {nextCursor && (
-                <div className="mt-6 flex justify-center">
-                    <Button onClick={handleLoadMore} disabled={isFetchingMore}>
-                        {isFetchingMore ? (
-                            <>
-                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                Loading...
-                            </>
-                        ) : (
-                           "Load More"
-                        )}
-                    </Button>
-                </div>
-            )}
+            {nextCursor && <LoadMore onLoadMore={handleLoadMore} isFetchingMore={isFetchingMore} />}
           </div>
         </div>
       </main>
