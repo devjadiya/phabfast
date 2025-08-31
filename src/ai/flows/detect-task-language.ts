@@ -21,7 +21,7 @@ export type DetectTaskLanguageInput = z.infer<typeof DetectTaskLanguageInputSche
 
 const DetectTaskLanguageOutputSchema = z.object({
   language: z
-    .enum([...languages])
+    .enum([...languages, "Unknown"])
     .describe('The detected programming language of the task. e.g. Python, JavaScript, PHP, Lua, etc.'),
 });
 export type DetectTaskLanguageOutput = z.infer<typeof DetectTaskLanguageOutputSchema>;
@@ -50,7 +50,12 @@ const detectTaskLanguageFlow = ai.defineFlow(
     outputSchema: DetectTaskLanguageOutputSchema,
   },
   async input => {
-    const {output} = await detectTaskLanguagePrompt(input);
-    return output!;
+    try {
+        const {output} = await detectTaskLanguagePrompt(input);
+        return output!;
+    } catch (e) {
+        console.error("Error in language detection flow: ", e);
+        return { language: "Unknown" };
+    }
   }
 );

@@ -119,13 +119,6 @@ export async function getTasks(filters: Filters): Promise<Task[]> {
       queryParts.push('bots OR automation');
     }
   }
-  
-  // This part of the original query was flawed.
-  // We can't query by a language that hasn't been detected yet.
-  // This is handled later in the client-side filtering section.
-  // if (filters.languages.length > 0) {
-  //   queryParts.push(...filters.languages.filter(l => l !== 'Other'));
-  // }
 
   if (filters.difficulties.length > 0) {
     queryParts.push(...filters.difficulties.map(d => d.toLowerCase()));
@@ -182,7 +175,7 @@ export async function getTasks(filters: Filters): Promise<Task[]> {
   // Language detection and Gerrit patch fetching
   const enrichedTasks = await Promise.all(
     tasks.map(async (task) => {
-      let detectedLanguage = "Unknown";
+      let detectedLanguage: Language | 'Unknown' = "Unknown";
       let gerritUrl: string | undefined;
 
       try {
@@ -205,15 +198,9 @@ export async function getTasks(filters: Filters): Promise<Task[]> {
   let finalTasks = enrichedTasks;
   
   // Now we filter by language, after it has been detected.
-  if (filters.languages.length > 0 && !filters.languages.includes('Other')) {
+  if (filters.languages.length > 0) {
     finalTasks = finalTasks.filter(task => 
-      filters.languages.some(lang => task.detectedLanguage?.toLowerCase().includes(lang.toLowerCase()))
-    );
-  }
-  if (filters.languages.includes('Other')) {
-    const knownLanguages = ["javascript", "python", "lua", "php"];
-    finalTasks = finalTasks.filter(task => 
-      !knownLanguages.some(lang => task.detectedLanguage?.toLowerCase().includes(lang))
+      task.detectedLanguage && filters.languages.includes(task.detectedLanguage as Language)
     );
   }
 
