@@ -4,12 +4,17 @@ import type { Filters } from '@/lib/types';
 
 function toEpoch(dateStr: string, endOfDay = false) {
     const date = new Date(dateStr);
+    // When a user picks a date like '2023-08-29', it's treated as midnight in their local timezone.
+    // To get the UTC day, we need to offset this.
+    const timezoneOffset = date.getTimezoneOffset() * 60000;
+    const utcDate = new Date(date.getTime() + timezoneOffset);
+    
     if (endOfDay) {
-      date.setUTCHours(23, 59, 59, 999);
+      utcDate.setUTCHours(23, 59, 59, 999);
     } else {
-      date.setUTCHours(0, 0, 0, 0);
+      utcDate.setUTCHours(0, 0, 0, 0);
     }
-    return Math.floor(date.getTime() / 1000);
+    return Math.floor(utcDate.getTime() / 1000);
 }
 
 export async function POST(req: Request) {
@@ -36,8 +41,10 @@ export async function POST(req: Request) {
         constraints.query = queryParts.join(' ');
     }
     
-    if (filters.dateRange?.from && filters.dateRange?.to) {
+    if (filters.dateRange?.from) {
         constraints.createdStart = toEpoch(filters.dateRange.from as any);
+    }
+    if (filters.dateRange?.to) {
         constraints.createdEnd = toEpoch(filters.dateRange.to as any, true);
     }
     

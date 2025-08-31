@@ -29,7 +29,7 @@ const Header: FC<HeaderProps> = ({
           </h1>
         </div>
         <div className="flex items-center gap-2">
-          <div className="relative w-64">
+           <div className="relative w-64" onKeyDown={onSearchKeyDown}>
             <Label htmlFor="search-tasks" className="sr-only">Search Tasks</Label>
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input 
@@ -39,7 +39,6 @@ const Header: FC<HeaderProps> = ({
               className="pl-9"
               value={searchText}
               onChange={onSearchChange}
-              onKeyDown={onSearchKeyDown}
             />
           </div>
           <Button variant="outline" size="icon" onClick={onRefresh} aria-label="Refresh tasks">
