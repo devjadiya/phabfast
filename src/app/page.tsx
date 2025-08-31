@@ -40,7 +40,7 @@ const Page: FC = () => {
         toast({
           variant: "destructive",
           title: "Error",
-          description: "Failed to fetch tasks from Phabricator.",
+          description: "Failed to fetch tasks. Check the console for details.",
         });
       }
     });
@@ -55,7 +55,7 @@ const Page: FC = () => {
   };
   
   const handleQueryChange = (query: TaskQuery | null) => {
-    setFilters(prev => ({ ...prev, query }));
+    setFilters(prev => ({ ...INITIAL_FILTERS, query }));
   };
 
   const handleRefresh = () => {

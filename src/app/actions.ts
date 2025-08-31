@@ -119,10 +119,13 @@ export async function getTasks(filters: Filters): Promise<Task[]> {
       queryParts.push('bots OR automation');
     }
   }
-
-  if (filters.languages.length > 0) {
-    queryParts.push(...filters.languages.filter(l => l !== 'Other'));
-  }
+  
+  // This part of the original query was flawed.
+  // We can't query by a language that hasn't been detected yet.
+  // This is handled later in the client-side filtering section.
+  // if (filters.languages.length > 0) {
+  //   queryParts.push(...filters.languages.filter(l => l !== 'Other'));
+  // }
 
   if (filters.difficulties.length > 0) {
     queryParts.push(...filters.difficulties.map(d => d.toLowerCase()));
@@ -161,7 +164,7 @@ export async function getTasks(filters: Filters): Promise<Task[]> {
       createdAt: fromUnixTime(phabTask.fields.dateCreated).toISOString().split('T')[0],
   }));
 
-  // Client-side filtering because Phabricator API has limitations
+  // Server-side filtering because Phabricator API has limitations
   
   if (filters.dateRange.from && filters.dateRange.to) {
     tasks = tasks.filter(task => {
@@ -172,7 +175,7 @@ export async function getTasks(filters: Filters): Promise<Task[]> {
   
   if (filters.query === 'good-first') {
     tasks = tasks.filter(task => task.subscribers <= 3);
-  } else {
+  } else if(filters.query !== 'bot-dev') { // 'bot-dev' might have many subscribers, so we don't filter it
     tasks = tasks.filter(task => task.subscribers <= filters.maxSubscribers);
   }
 
@@ -200,13 +203,19 @@ export async function getTasks(filters: Filters): Promise<Task[]> {
   );
 
   let finalTasks = enrichedTasks;
-
+  
+  // Now we filter by language, after it has been detected.
   if (filters.languages.length > 0 && !filters.languages.includes('Other')) {
     finalTasks = finalTasks.filter(task => 
       filters.languages.some(lang => task.detectedLanguage?.toLowerCase().includes(lang.toLowerCase()))
     );
   }
-
+  if (filters.languages.includes('Other')) {
+    const knownLanguages = ["javascript", "python", "lua", "php"];
+    finalTasks = finalTasks.filter(task => 
+      !knownLanguages.some(lang => task.detectedLanguage?.toLowerCase().includes(lang))
+    );
+  }
 
   return finalTasks.sort((a, b) => b.dateCreated - a.dateCreated);
 }
