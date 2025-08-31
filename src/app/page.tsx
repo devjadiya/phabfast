@@ -44,7 +44,7 @@ const INITIAL_FILTERS: Filters = {
   text: '',
 };
 
-const API_TASK_LIMIT = 20;
+const API_TASK_LIMIT = 10;
 const MAX_VISIBLE_TASKS = 60; // Keep the DOM light
 
 async function fetchTasksFromApi(filters: Filters, after?: string, order?: SortOption): Promise<{tasks: Task[], nextCursor: string | null}> {
