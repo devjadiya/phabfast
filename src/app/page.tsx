@@ -158,8 +158,12 @@ const Page: FC = () => {
             const enrichedTask = await enrichTask(task);
             setTasks(prevTasks => {
                 const newTasks = [...prevTasks];
-                newTasks[index] = enrichedTask;
-                return newTasks;
+                const taskIndex = newTasks.findIndex(t => t.id === enrichedTask.id);
+                if (taskIndex !== -1) {
+                  newTasks[taskIndex] = enrichedTask;
+                  return newTasks;
+                }
+                return prevTasks;
             });
         });
 
@@ -194,8 +198,7 @@ const Page: FC = () => {
 
         setTasks(prevTasks => {
             const updatedTasks = [...prevTasks];
-            const baseIndex = prevTasks.length - newTasks.length;
-            enrichedNewTasks.forEach((enrichedTask, index) => {
+            enrichedNewTasks.forEach((enrichedTask) => {
                 const taskIndex = updatedTasks.findIndex(t => t.id === enrichedTask.id);
                 if (taskIndex !== -1) {
                   updatedTasks[taskIndex] = enrichedTask;
@@ -217,7 +220,15 @@ const Page: FC = () => {
   }, [nextCursor, isFetchingMore, filters, toast]);
 
   useEffect(() => {
-    handleFetchTasks(filters);
+    // Debounce the fetch call
+    const handler = setTimeout(() => {
+        handleFetchTasks(filters);
+    }, 500); // 500ms delay
+
+    // Cleanup function to clear timeout if filters change again
+    return () => {
+        clearTimeout(handler);
+    };
   }, [filters, handleFetchTasks]);
   
   const handleFilterChange = (newFilters: Partial<Filters>) => {
