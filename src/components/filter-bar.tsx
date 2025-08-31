@@ -4,105 +4,152 @@ import type { FC } from "react";
 import { useState } from "react";
 import type { DateRange } from "react-day-picker";
 import { format } from "date-fns";
-import { Calendar as CalendarIcon, Languages, Users, Star, ChevronsUpDown, Check } from "lucide-react";
+import { Calendar as CalendarIcon, Languages, Users, Star, ChevronsUpDown, Check, Bot, Code, Settings, Tool, X, RefreshCw, ToggleLeft } from "lucide-react";
 
 import { cn } from "@/lib/utils";
-import type { Filters, Language, Difficulty } from "@/lib/types";
+import type { Filters, Language, Difficulty, TaskQuery } from "@/lib/types";
 import { languages, difficulties } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuCheckboxItem,
-  DropdownMenuTrigger,
-  DropdownMenuLabel,
-  DropdownMenuSeparator
-} from "@/components/ui/dropdown-menu";
 import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Separator } from "@/components/ui/separator";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { Switch } from "@/components/ui/switch";
 
 interface FilterBarProps {
   filters: Filters;
   onFilterChange: (newFilters: Partial<Filters>) => void;
+  onQueryChange: (query: TaskQuery | null) => void;
 }
 
-const FilterBar: FC<FilterBarProps> = ({ filters, onFilterChange }) => {
+const trackButtons: { id: TaskQuery, label: string, icon: React.ReactNode }[] = [
+    { id: 'bot-dev', label: 'Bots', icon: <Bot className="mr-2 h-4 w-4" /> },
+    { id: 'core', label: 'Core', icon: <Settings className="mr-2 h-4 w-4" /> },
+    { id: 'gadgets', label: 'Gadgets', icon: <Code className="mr-2 h-4 w-4" /> },
+    { id: 'web-tools', label: 'Web', icon: <Tool className="mr-2 h-4 w-4" /> },
+];
+
+const FilterBar: FC<FilterBarProps> = ({ filters, onFilterChange, onQueryChange }) => {
   const [maxSubscribers, setMaxSubscribers] = useState(filters.maxSubscribers);
 
-  return (
-    <div className="rounded-lg border bg-card p-4 text-card-foreground shadow-sm">
-      <div className="grid grid-cols-1 items-center gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
-        
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button
-              id="date"
-              variant={"outline"}
-              className={cn(
-                "w-full justify-start text-left font-normal",
-                !filters.dateRange.from && "text-muted-foreground"
-              )}
-            >
-              <CalendarIcon className="mr-2 h-4 w-4" />
-              {filters.dateRange.from ? (
-                filters.dateRange.to ? (
-                  <>
-                    {format(filters.dateRange.from, "LLL dd, y")} -{" "}
-                    {format(filters.dateRange.to, "LLL dd, y")}
-                  </>
-                ) : (
-                  format(filters.dateRange.from, "LLL dd, y")
-                )
-              ) : (
-                <span>Pick a date range</span>
-              )}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align="start">
-            <Calendar
-              initialFocus
-              mode="range"
-              defaultMonth={filters.dateRange?.from}
-              selected={filters.dateRange as DateRange}
-              onSelect={(range) => onFilterChange({ dateRange: range || { from: undefined, to: undefined } })}
-              numberOfMonths={2}
-            />
-          </PopoverContent>
-        </Popover>
+  const handleLanguageToggle = (lang: Language) => {
+    const newLangs = filters.languages.includes(lang)
+      ? filters.languages.filter(l => l !== lang)
+      : [...filters.languages, lang];
+    onFilterChange({ languages: newLangs });
+  };
+  
+  const handleDifficultyChange = (newDifficulties: Difficulty[]) => {
+    onFilterChange({ difficulties: newDifficulties });
+  };
 
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" className="w-full justify-start">
-              <Languages className="mr-2 h-4 w-4" />
-              Languages ({filters.languages.length || 'Any'})
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent className="w-56">
-             <DropdownMenuLabel>Filter by Language</DropdownMenuLabel>
-             <DropdownMenuSeparator />
+  const resetFilters = () => {
+    setMaxSubscribers(10);
+    onFilterChange({
+        dateRange: { from: undefined, to: undefined },
+        languages: [],
+        maxSubscribers: 10,
+        difficulties: [],
+    });
+    onQueryChange(null);
+  }
+
+  return (
+    <div className="rounded-lg border bg-card p-4 text-card-foreground shadow-sm relative">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-12">
+
+        <div className="md:col-span-4 space-y-2">
+            <Label>Track Selector</Label>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
+                {trackButtons.map(({ id, label, icon }) => (
+                    <Button 
+                        key={id} 
+                        variant={filters.query === id ? 'default' : 'outline'}
+                        onClick={() => onQueryChange(id)}
+                        className="justify-start"
+                    >
+                        {icon} {label}
+                    </Button>
+                ))}
+            </div>
+        </div>
+
+        <div className="md:col-span-3 space-y-2">
+            <Label>Difficulty</Label>
+            <ToggleGroup 
+                type="multiple" 
+                variant="outline" 
+                value={filters.difficulties}
+                onValueChange={handleDifficultyChange}
+                className="justify-start"
+            >
+                {difficulties.map(diff => (
+                    <ToggleGroupItem key={diff} value={diff}>{diff}</ToggleGroupItem>
+                ))}
+            </ToggleGroup>
+        </div>
+        
+        <div className="md:col-span-5 space-y-2">
+            <Label>Languages</Label>
+            <div className="flex flex-wrap gap-2">
             {languages.map((lang) => (
-              <DropdownMenuCheckboxItem
+              <Button
                 key={lang}
-                checked={filters.languages.includes(lang)}
-                onCheckedChange={(checked) => {
-                  const newLangs = checked
-                    ? [...filters.languages, lang]
-                    : filters.languages.filter((l) => l !== lang);
-                  onFilterChange({ languages: newLangs });
-                }}
+                variant={filters.languages.includes(lang) ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => handleLanguageToggle(lang)}
               >
                 {lang}
-              </DropdownMenuCheckboxItem>
+              </Button>
             ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
-
-        <div className="space-y-2">
+            </div>
+        </div>
+        
+        <div className="md:col-span-4 space-y-2">
+             <Label>Date Range</Label>
+             <Popover>
+                <PopoverTrigger asChild>
+                    <Button
+                    id="date"
+                    variant={"outline"}
+                    className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !filters.dateRange.from && "text-muted-foreground"
+                    )}
+                    >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {filters.dateRange.from ? (
+                        filters.dateRange.to ? (
+                        <>
+                            {format(filters.dateRange.from, "LLL dd, y")} -{" "}
+                            {format(filters.dateRange.to, "LLL dd, y")}
+                        </>
+                        ) : (
+                        format(filters.dateRange.from, "LLL dd, y")
+                        )
+                    ) : (
+                        <span>Pick a date range</span>
+                    )}
+                    </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                    initialFocus
+                    mode="range"
+                    defaultMonth={filters.dateRange?.from}
+                    selected={filters.dateRange as DateRange}
+                    onSelect={(range) => onFilterChange({ dateRange: range || { from: undefined, to: undefined } })}
+                    numberOfMonths={2}
+                    />
+                </PopoverContent>
+            </Popover>
+        </div>
+        
+        <div className="md:col-span-3 space-y-2">
             <Label htmlFor="subscribers" className="flex items-center">
-                <Users className="mr-2 h-4 w-4 text-muted-foreground" />
                 Max Subscribers: {maxSubscribers}
             </Label>
             <Slider
@@ -115,46 +162,22 @@ const FilterBar: FC<FilterBarProps> = ({ filters, onFilterChange }) => {
                 onValueCommit={(value) => onFilterChange({ maxSubscribers: value[0] })}
             />
         </div>
+        
+        <div className="md:col-span-3 space-y-2 flex items-end">
+            <div className="flex items-center space-x-2">
+                <Switch 
+                    id="ai-guess"
+                    // Add state and handler if AI guess toggle is implemented
+                />
+                <Label htmlFor="ai-guess">AI Guess Language</Label>
+            </div>
+        </div>
 
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" className="w-full justify-start">
-              <Star className="mr-2 h-4 w-4" />
-              Difficulty ({filters.difficulties.length || 'Any'})
+        <div className="md:col-span-2 flex items-end justify-end">
+             <Button variant="ghost" onClick={resetFilters}>
+                <RefreshCw className="mr-2 h-4 w-4" />
+                Reset Filters
             </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent className="w-56">
-            <DropdownMenuLabel>Filter by Difficulty</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            {difficulties.map((diff) => (
-              <DropdownMenuCheckboxItem
-                key={diff}
-                checked={filters.difficulties.includes(diff)}
-                onCheckedChange={(checked) => {
-                  const newDiffs = checked
-                    ? [...filters.difficulties, diff]
-                    : filters.difficulties.filter((d) => d !== diff);
-                  onFilterChange({ difficulties: newDiffs });
-                }}
-              >
-                {diff}
-              </DropdownMenuCheckboxItem>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
-
-        <div className="flex items-center space-x-2">
-          <Checkbox 
-            id="open-only" 
-            checked={filters.openOnly}
-            onCheckedChange={(checked) => onFilterChange({ openOnly: !!checked })}
-          />
-          <label
-            htmlFor="open-only"
-            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-          >
-            Open Only
-          </label>
         </div>
       </div>
     </div>

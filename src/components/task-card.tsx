@@ -4,7 +4,9 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { Users, CalendarDays, ExternalLink, Code2, GitMerge } from 'lucide-react';
+import { Users, CalendarDays, ExternalLink, Code2, GitMerge, Star, Bookmark } from 'lucide-react';
+import { Progress } from '@/components/ui/progress';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface TaskCardProps {
   task: Task;
@@ -26,41 +28,71 @@ const LanguageIcon: FC<{ language?: string }> = ({ language }) => {
   }
 };
 
+const SubscriberBar: FC<{ count: number }> = ({ count }) => {
+    let colorClass = 'bg-green-500';
+    if (count > 3 && count <= 10) {
+        colorClass = 'bg-yellow-500';
+    } else if (count > 10) {
+        colorClass = 'bg-red-500';
+    }
+    const widthPercentage = Math.min((count / 20) * 100, 100);
+
+    return (
+        <TooltipProvider>
+            <Tooltip>
+                <TooltipTrigger className="w-full">
+                    <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
+                        <div className={`h-full ${colorClass}`} style={{ width: `${widthPercentage}%` }}></div>
+                    </div>
+                </TooltipTrigger>
+                <TooltipContent>
+                    <p>{count} Subscribers</p>
+                </TooltipContent>
+            </Tooltip>
+        </TooltipProvider>
+    );
+};
+
 const TaskCard: FC<TaskCardProps> = ({ task }) => {
   return (
-    <Card className="flex h-full flex-col transition-all hover:shadow-lg">
+    <Card className="flex h-full flex-col transition-all hover:shadow-lg max-w-md w-full">
       <CardHeader>
-        <CardTitle className="text-xl">[{task.id}] {task.title}</CardTitle>
+        <div className="flex justify-between items-start">
+            <CardTitle className="text-lg font-bold">
+                <a href={task.phabricatorUrl} target="_blank" rel="noopener noreferrer" className="hover:underline">
+                    [{task.id}] {task.title}
+                </a>
+            </CardTitle>
+            <Button variant="ghost" size="icon" className="h-8 w-8">
+                <Bookmark className="h-4 w-4" />
+            </Button>
+        </div>
         <div className="flex flex-wrap items-center gap-2 pt-2">
-          {task.tags.slice(0, 4).map((tag) => (
+          {task.tags.slice(0, 3).map((tag) => (
             <Badge key={tag} variant="secondary" className="font-normal">{tag}</Badge>
           ))}
+           {task.detectedLanguage && <Badge variant="outline"><LanguageIcon language={task.detectedLanguage} /> <span className="ml-1">{task.detectedLanguage}</span></Badge>}
         </div>
       </CardHeader>
-      <CardContent className="flex-grow">
-        <div className="flex items-center justify-between text-sm text-muted-foreground">
-          <div className="flex items-center gap-2">
-            <CalendarDays className="h-4 w-4" />
-            <span>Created: {new Date(task.createdAt).toLocaleDateString()}</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Users className="h-4 w-4" />
-            <span>{task.subscribers} Subscribers</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <LanguageIcon language={task.detectedLanguage} />
-            <span>{task.detectedLanguage}</span>
-          </div>
+      <CardContent className="flex-grow space-y-4">
+        <p className="text-sm text-muted-foreground line-clamp-3">{task.description}</p>
+        <div className="space-y-2">
+            <div className="flex items-center justify-between text-sm text-muted-foreground">
+                <div className="flex items-center gap-2">
+                    <CalendarDays className="h-4 w-4" />
+                    <span>{new Date(task.createdAt).toLocaleDateString()}</span>
+                </div>
+                 <div className="flex items-center gap-2">
+                    <Users className="h-4 w-4" />
+                    <span>{task.subscribers} Subscribers</span>
+                </div>
+            </div>
+            <SubscriberBar count={task.subscribers} />
         </div>
       </CardContent>
       <Separator />
       <CardFooter className="p-4">
-        <div className="flex w-full justify-between">
-          <Button asChild variant="link" className="p-0 h-auto">
-            <a href={task.phabricatorUrl} target="_blank" rel="noopener noreferrer">
-              View on Phabricator <ExternalLink className="ml-2 h-4 w-4" />
-            </a>
-          </Button>
+        <div className="flex w-full justify-between items-center">
           {task.gerritUrl ? (
             <Button asChild variant="link" className="p-0 h-auto text-accent hover:text-accent/90">
               <a href={task.gerritUrl} target="_blank" rel="noopener noreferrer">
@@ -68,8 +100,13 @@ const TaskCard: FC<TaskCardProps> = ({ task }) => {
               </a>
             </Button>
           ) : (
-            <span className="text-sm text-muted-foreground">No patch</span>
+            <span className="text-sm text-muted-foreground">No patch found</span>
           )}
+          <Button asChild variant="outline">
+            <a href={task.phabricatorUrl} target="_blank" rel="noopener noreferrer">
+              View Task <ExternalLink className="ml-2 h-4 w-4" />
+            </a>
+          </Button>
         </div>
       </CardFooter>
     </Card>

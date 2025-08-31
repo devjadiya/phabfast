@@ -10,13 +10,13 @@ export interface Task {
   isClosed: boolean;
   dateCreated: number;
   dateModified: number;
-  description: string; // This is a custom field for the description
-  subscriberPHIDs: string[]; // Custom field for subscribers
-  projectPHIDs: string[]; // Custom field for projects/tags
+  description: string;
+  subscriberPHIDs: string[];
+  projectPHIDs: string[];
   points: number;
   subscribers: number;
   detectedLanguage?: string;
-  gerritUrl?: string; // This is not from phabricator, might need custom logic
+  gerritUrl?: string;
   tags: string[];
   phabricatorUrl: string;
   createdAt: string;
@@ -28,7 +28,7 @@ export const difficulties: Difficulty[] = ["Easy", "Medium", "Hard"];
 export type Language = "JavaScript" | "Python" | "Lua" | "PHP" | "Other";
 export const languages: Language[] = ["JavaScript", "Python", "Lua", "PHP", "Other"];
 
-export type TaskQuery = 'good-first' | 'bot-dev';
+export type TaskQuery = 'good-first' | 'bot-dev' | 'core' | 'gadgets' | 'web-tools';
 
 export interface Filters {
   dateRange: {
@@ -40,4 +40,5 @@ export interface Filters {
   difficulties: Difficulty[];
   openOnly: boolean;
   query: TaskQuery | null;
+  text?: string;
 }

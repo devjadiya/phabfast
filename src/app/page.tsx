@@ -4,11 +4,14 @@ import type { FC } from "react";
 import { useState, useEffect, useCallback, useTransition } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { useToast } from "@/hooks/use-toast";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 
 import type { Task, Filters, TaskQuery } from "@/lib/types";
 import Header from "@/components/header";
 import FilterBar from "@/components/filter-bar";
 import TaskFeed from "@/components/task-feed";
+import { Search, X } from "lucide-react";
 
 const INITIAL_FILTERS: Filters = {
   dateRange: {
@@ -20,6 +23,7 @@ const INITIAL_FILTERS: Filters = {
   difficulties: [],
   openOnly: true,
   query: 'good-first',
+  text: '',
 };
 
 async function fetchTasksFromApi(filters: Filters): Promise<Task[]> {
@@ -39,7 +43,6 @@ async function fetchTasksFromApi(filters: Filters): Promise<Task[]> {
 
     let tasks: Task[] = await response.json();
 
-    // Fetch Gerrit URLs for each task
     tasks = await Promise.all(
       tasks.map(async (task) => {
         try {
@@ -61,7 +64,6 @@ async function fetchTasksFromApi(filters: Filters): Promise<Task[]> {
     return tasks;
   } catch (error) {
     console.error('Failed to fetch tasks:', error);
-    // Re-throw or handle as needed
     throw error;
   }
 }
@@ -91,6 +93,7 @@ const Page: FC = () => {
   const [filters, setFilters] = useState<Filters>(INITIAL_FILTERS);
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
+  const [searchText, setSearchText] = useState('');
 
   const handleFetchTasks = useCallback(() => {
     startTransition(async () => {
@@ -111,7 +114,7 @@ const Page: FC = () => {
   useEffect(() => {
     handleFetchTasks();
   }, [handleFetchTasks]);
-
+  
   const handleFilterChange = (newFilters: Partial<Filters>) => {
     setFilters(prev => ({ ...prev, ...newFilters, query: null }));
   };
@@ -119,6 +122,20 @@ const Page: FC = () => {
   const handleQueryChange = (query: TaskQuery | null) => {
     setFilters(prev => ({ ...INITIAL_FILTERS, query }));
   };
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchText(e.target.value);
+  }
+
+  const handleSearchSubmit = () => {
+     setFilters(prev => ({...prev, query: null, text: searchText}))
+  }
+  
+  const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      handleSearchSubmit();
+    }
+  }
 
   const handleRefresh = () => {
     handleFetchTasks();
@@ -152,6 +169,19 @@ const Page: FC = () => {
       });
     }
   };
+  
+  const removeFilterChip = (filterType: keyof Filters, value: any) => {
+    if (filterType === 'languages' || filterType === 'difficulties') {
+      const currentValues = filters[filterType] as string[];
+      handleFilterChange({ [filterType]: currentValues.filter(item => item !== value) } as Partial<Filters>);
+    }
+    // Add logic for other filter types if needed
+  };
+
+  const activeFilters = [
+    ...(filters.languages?.map(l => ({type: 'languages' as keyof Filters, value: l, label: l})) || []),
+    ...(filters.difficulties?.map(d => ({type: 'difficulties' as keyof Filters, value: d, label: d})) || [])
+  ];
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-background">
@@ -160,11 +190,40 @@ const Page: FC = () => {
         onRefresh={handleRefresh}
         onExport={handleExport}
         activeQuery={filters.query}
+        searchText={searchText}
+        onSearchChange={handleSearchChange}
+        onSearchSubmit={handleSearchSubmit}
+        onSearchKeyDown={handleSearchKeyDown}
       />
       <main className="flex-1">
         <div className="container mx-auto px-4 py-8 md:px-6">
-          <FilterBar filters={filters} onFilterChange={handleFilterChange} />
+          <FilterBar filters={filters} onFilterChange={handleFilterChange} onQueryChange={handleQueryChange} />
+          
+          {activeFilters.length > 0 && (
+            <div className="sticky top-[65px] z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 py-2 -mt-4">
+                <div className="flex flex-wrap items-center gap-2">
+                <span className="text-sm font-medium">Active Filters:</span>
+                {activeFilters.map(filter => (
+                    <Badge key={`${filter.type}-${filter.value}`} variant="secondary" className="flex items-center gap-1">
+                    {filter.label}
+                    <button onClick={() => removeFilterChip(filter.type, filter.value)} className="rounded-full hover:bg-muted-foreground/20">
+                        <X className="h-3 w-3" />
+                    </button>
+                    </Badge>
+                ))}
+                <Button variant="ghost" size="sm" onClick={() => setFilters(prev => ({...prev, languages: [], difficulties: []}))}>
+                    Reset All
+                </Button>
+                </div>
+            </div>
+           )}
+
           <div className="mt-8">
+            <div className="mb-4 flex items-center justify-between">
+                <p className="text-sm text-muted-foreground">
+                    Found {tasks.length} {tasks.length === 1 ? 'task' : 'tasks'}.
+                </p>
+            </div>
             <TaskFeed tasks={tasks} isLoading={isPending} />
           </div>
         </div>

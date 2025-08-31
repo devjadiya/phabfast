@@ -6,43 +6,50 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { BrainCircuit, RefreshCw, Download, Bird, Bot } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { BrainCircuit, RefreshCw, Download, Search } from 'lucide-react';
 import type { TaskQuery } from '@/lib/types';
 
 interface HeaderProps {
-  onQueryChange: (query: TaskQuery) => void;
+  onQueryChange: (query: TaskQuery | null) => void;
   onRefresh: () => void;
   onExport: (format: 'csv' | 'md') => void;
   activeQuery: TaskQuery | null;
+  searchText: string;
+  onSearchChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onSearchSubmit: () => void;
+  onSearchKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void;
 }
 
-const Header: FC<HeaderProps> = ({ onQueryChange, onRefresh, onExport, activeQuery }) => {
+const Header: FC<HeaderProps> = ({ 
+  onRefresh, 
+  onExport, 
+  searchText,
+  onSearchChange,
+  onSearchSubmit,
+  onSearchKeyDown
+}) => {
   return (
-    <header className="sticky top-0 z-10 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <header className="sticky top-0 z-20 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container mx-auto flex h-16 items-center justify-between px-4 md:px-6">
         <div className="flex items-center gap-4">
           <BrainCircuit className="h-8 w-8 text-primary" />
-          <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-            PhabFast
+          <h1 className="text-lg font-bold tracking-tight text-foreground sm:text-xl">
+            PhabFast: Task Dashboard for Wikimedia
           </h1>
         </div>
         <div className="flex items-center gap-2">
-           <Button
-            variant={activeQuery === 'good-first' ? 'default' : 'ghost'}
-            size="sm"
-            onClick={() => onQueryChange('good-first')}
-          >
-            <Bird className="mr-2 h-4 w-4" />
-            Good First Tasks
-          </Button>
-          <Button
-            variant={activeQuery === 'bot-dev' ? 'default' : 'ghost'}
-            size="sm"
-            onClick={() => onQueryChange('bot-dev')}
-          >
-            <Bot className="mr-2 h-4 w-4" />
-            Bot Dev Tasks
-          </Button>
+          <div className="relative w-64">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input 
+              type="search"
+              placeholder="Search tasks by keyword..."
+              className="pl-9"
+              value={searchText}
+              onChange={onSearchChange}
+              onKeyDown={onSearchKeyDown}
+            />
+          </div>
           <Button variant="outline" size="icon" onClick={onRefresh} aria-label="Refresh tasks">
             <RefreshCw className="h-4 w-4" />
           </Button>

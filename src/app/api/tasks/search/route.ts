@@ -12,10 +12,22 @@ export async function POST(req: Request) {
       statuses: filters.openOnly ? ['open'] : [],
     };
     
-    if (filters.query) {
-        if(filters.query === 'good-first') constraints.query = 'good first task';
-        if(filters.query === 'bot-dev') constraints.query = 'bots';
+    const queryParts: string[] = [];
+    if (filters.text) {
+        queryParts.push(filters.text);
     }
+    if (filters.query) {
+        if(filters.query === 'good-first') queryParts.push('good first task');
+        if(filters.query === 'bot-dev') queryParts.push('bots');
+        if(filters.query === 'core') queryParts.push('MediaWiki OR core');
+        if(filters.query === 'gadgets') queryParts.push('gadget OR template');
+        if(filters.query === 'web-tools') queryParts.push('tools OR Toolforge');
+    }
+
+    if(queryParts.length > 0) {
+        constraints.query = queryParts.join(' ');
+    }
+
 
     const attachments = {
       projects: 1,
@@ -35,15 +47,9 @@ export async function POST(req: Request) {
     }
     
     if (filters.maxSubscribers !== undefined) {
-        if(filters.query !== 'bot-dev') { 
-            tasks = tasks.filter(task => task.subscribers <= filters.maxSubscribers);
-        }
+      tasks = tasks.filter(task => task.subscribers <= filters.maxSubscribers);
     }
     
-    if (filters.query === 'good-first') {
-        tasks = tasks.filter(task => task.subscribers <= 3);
-    }
-
     // AI Language Detection
     tasks = await Promise.all(
       tasks.map(async (task) => {
@@ -57,6 +63,9 @@ export async function POST(req: Request) {
         task.detectedLanguage && (filters.languages as string[]).includes(task.detectedLanguage)
       );
     }
+    
+    // Difficulty filtering would happen here if we had it
+    // if (filters.difficulties && filters.difficulties.length > 0) { ... }
 
     return NextResponse.json(tasks.sort((a, b) => b.dateCreated - a.dateCreated));
   } catch (error: any) {
