@@ -134,6 +134,7 @@ export async function searchPhabricatorTasks(constraints: object = {}, attachmen
       tags: Object.values(phabTask.attachments.projects?.tags || {}),
       phabricatorUrl: `${process.env.PHABRICATOR_API_URL?.replace('/api', '')}/T${phabTask.id}`,
       createdAt: fromUnixTime(phabTask.fields.dateCreated).toISOString().split('T')[0],
+      difficulty: 'Medium', // This will be enriched later
     }));
 
     return { tasks, nextCursor: data.result.cursor.after };

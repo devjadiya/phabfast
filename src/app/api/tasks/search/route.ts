@@ -30,28 +30,32 @@ const projectPhidMap: Record<string, string[]> = {
     ],
 };
 
+const queryToKeyword: Record<string, string> = {
+    'bot-dev': 'bot',
+    'web-tools': 'web tool',
+    'core': 'core',
+    'gadgets': 'gadget',
+}
 
 export async function POST(req: Request) {
   try {
     const { filters, after, order, limit } = await req.json();
     
     const constraints: any = {};
-    const projectConstraints: string[] = [];
     
     if (filters.openOnly) {
         constraints.statuses = ['open'];
     }
     
     if (filters.query && projectPhidMap[filters.query]) {
-        projectConstraints.push(...projectPhidMap[filters.query]);
-    }
-
-    if (projectConstraints.length > 0) {
-        constraints.projects = projectConstraints;
+        constraints.projects = projectPhidMap[filters.query];
     }
     
-    // Add full text search as a fallback/broadener
-    if (filters.text) {
+    // Add full text search as a fallback/broadener, especially for tracks
+    if (filters.query && queryToKeyword[filters.query]) {
+        // If a text filter is also present, combine them.
+        constraints.query = filters.text ? `${queryToKeyword[filters.query]} ${filters.text}` : queryToKeyword[filters.query];
+    } else if (filters.text) {
         constraints.query = filters.text;
     }
     
