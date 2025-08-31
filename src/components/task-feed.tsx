@@ -11,8 +11,8 @@ interface TaskFeedProps {
 const TaskFeed: FC<TaskFeedProps> = ({ tasks, isLoading }) => {
   if (isLoading) {
     return (
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {Array.from({ length: 6 }).map((_, i) => (
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        {Array.from({ length: 9 }).map((_, i) => (
           <TaskCardSkeleton key={i} />
         ))}
       </div>
@@ -21,7 +21,7 @@ const TaskFeed: FC<TaskFeedProps> = ({ tasks, isLoading }) => {
 
   if (tasks.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-muted bg-card p-12 text-center">
+      <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-muted bg-card p-12 text-center col-span-full">
         <h3 className="text-2xl font-bold tracking-tight">No tasks found</h3>
         <p className="text-muted-foreground">Try adjusting your filters or refreshing.</p>
       </div>
@@ -29,7 +29,7 @@ const TaskFeed: FC<TaskFeedProps> = ({ tasks, isLoading }) => {
   }
 
   return (
-    <div className="grid animate-in fade-in-50 gap-4 md:grid-cols-2 lg:grid-cols-3">
+    <div className="grid animate-in fade-in-50 gap-6 md:grid-cols-2 lg:grid-cols-3">
       {tasks.map((task) => (
         <TaskCard key={task.id} task={task} />
       ))}

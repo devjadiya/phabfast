@@ -4,7 +4,7 @@ import type { FC } from "react";
 import { useState } from "react";
 import type { DateRange } from "react-day-picker";
 import { format } from "date-fns";
-import { Calendar as CalendarIcon, Languages, Users, Star, ChevronsUpDown, Check, Bot, Code, Settings, Globe, X, RefreshCw, ToggleLeft } from "lucide-react";
+import { Calendar as CalendarIcon, Bot, Code, Settings, Globe, RefreshCw } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import type { Filters, Language, Difficulty, TaskQuery } from "@/lib/types";
@@ -14,8 +14,6 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Separator } from "@/components/ui/separator";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Switch } from "@/components/ui/switch";
 
@@ -59,6 +57,9 @@ const FilterBar: FC<FilterBarProps> = ({ filters, onFilterChange, onQueryChange 
 
   return (
     <div className="rounded-lg border bg-card p-4 text-card-foreground shadow-sm relative">
+        <Button variant="ghost" size="icon" onClick={resetFilters} className="absolute top-1 right-1">
+            <RefreshCw className="h-4 w-4" />
+        </Button>
       <div className="grid grid-cols-1 gap-6 md:grid-cols-12">
 
         <div className="md:col-span-4 space-y-2">
@@ -108,7 +109,7 @@ const FilterBar: FC<FilterBarProps> = ({ filters, onFilterChange, onQueryChange 
             </div>
         </div>
         
-        <div className="md:col-span-4 space-y-2">
+        <div className="md:col-span-5 space-y-2">
              <Label>Date Range</Label>
              <Popover>
                 <PopoverTrigger asChild>
@@ -148,7 +149,7 @@ const FilterBar: FC<FilterBarProps> = ({ filters, onFilterChange, onQueryChange 
             </Popover>
         </div>
         
-        <div className="md:col-span-3 space-y-2">
+        <div className="md:col-span-4 space-y-2">
             <Label htmlFor="subscribers" className="flex items-center">
                 Max Subscribers: {maxSubscribers}
             </Label>
@@ -167,17 +168,11 @@ const FilterBar: FC<FilterBarProps> = ({ filters, onFilterChange, onQueryChange 
             <div className="flex items-center space-x-2">
                 <Switch 
                     id="ai-guess"
-                    // Add state and handler if AI guess toggle is implemented
+                    checked={true}
+                    disabled
                 />
-                <Label htmlFor="ai-guess">AI Guess Language</Label>
+                <Label htmlFor="ai-guess">AI Language Detection</Label>
             </div>
-        </div>
-
-        <div className="md:col-span-2 flex items-end justify-end">
-             <Button variant="ghost" onClick={resetFilters}>
-                <RefreshCw className="mr-2 h-4 w-4" />
-                Reset Filters
-            </Button>
         </div>
       </div>
     </div>

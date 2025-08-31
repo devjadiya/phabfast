@@ -4,14 +4,14 @@ import type { FC } from "react";
 import { useState, useEffect, useCallback, useTransition } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { useToast } from "@/hooks/use-toast";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 
 import type { Task, Filters, TaskQuery } from "@/lib/types";
 import Header from "@/components/header";
 import FilterBar from "@/components/filter-bar";
 import TaskFeed from "@/components/task-feed";
-import { Search, X } from "lucide-react";
+import { X } from "lucide-react";
 
 const INITIAL_FILTERS: Filters = {
   dateRange: {
@@ -116,7 +116,7 @@ const Page: FC = () => {
   }, [handleFetchTasks]);
   
   const handleFilterChange = (newFilters: Partial<Filters>) => {
-    setFilters(prev => ({ ...prev, ...newFilters, query: null }));
+    setFilters(prev => ({ ...prev, ...newFilters, query: prev.query && newFilters.query !== null ? null : prev.query }));
   };
   
   const handleQueryChange = (query: TaskQuery | null) => {
@@ -174,11 +174,13 @@ const Page: FC = () => {
     if (filterType === 'languages' || filterType === 'difficulties') {
       const currentValues = filters[filterType] as string[];
       handleFilterChange({ [filterType]: currentValues.filter(item => item !== value) } as Partial<Filters>);
+    } else if (filterType === 'query') {
+        handleQueryChange(null);
     }
-    // Add logic for other filter types if needed
   };
 
   const activeFilters = [
+    ...(filters.query ? [{type: 'query' as keyof Filters, value: filters.query, label: filters.query.replace('-', ' ')}] : []),
     ...(filters.languages?.map(l => ({type: 'languages' as keyof Filters, value: l, label: l})) || []),
     ...(filters.difficulties?.map(d => ({type: 'difficulties' as keyof Filters, value: d, label: d})) || [])
   ];
@@ -200,18 +202,18 @@ const Page: FC = () => {
           <FilterBar filters={filters} onFilterChange={handleFilterChange} onQueryChange={handleQueryChange} />
           
           {activeFilters.length > 0 && (
-            <div className="sticky top-[65px] z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 py-2 -mt-4">
+            <div className="sticky top-[65px] z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 py-2 -mt-2 mb-4">
                 <div className="flex flex-wrap items-center gap-2">
                 <span className="text-sm font-medium">Active Filters:</span>
                 {activeFilters.map(filter => (
-                    <Badge key={`${filter.type}-${filter.value}`} variant="secondary" className="flex items-center gap-1">
+                    <Badge key={`${filter.type}-${filter.value}`} variant="secondary" className="flex items-center gap-1 capitalize">
                     {filter.label}
                     <button onClick={() => removeFilterChip(filter.type, filter.value)} className="rounded-full hover:bg-muted-foreground/20">
                         <X className="h-3 w-3" />
                     </button>
                     </Badge>
                 ))}
-                <Button variant="ghost" size="sm" onClick={() => setFilters(prev => ({...prev, languages: [], difficulties: []}))}>
+                <Button variant="ghost" size="sm" onClick={() => setFilters(prev => ({...prev, languages: [], difficulties: [], query: null}))}>
                     Reset All
                 </Button>
                 </div>

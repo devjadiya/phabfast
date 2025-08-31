@@ -4,8 +4,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { Users, CalendarDays, ExternalLink, Code2, GitMerge, Star, Bookmark } from 'lucide-react';
-import { Progress } from '@/components/ui/progress';
+import { Users, CalendarDays, ExternalLink, Code2, GitMerge, Bookmark } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface TaskCardProps {
@@ -55,15 +54,15 @@ const SubscriberBar: FC<{ count: number }> = ({ count }) => {
 
 const TaskCard: FC<TaskCardProps> = ({ task }) => {
   return (
-    <Card className="flex h-full flex-col transition-all hover:shadow-lg max-w-md w-full">
+    <Card className="flex h-full flex-col transition-all hover:shadow-lg max-w-sm w-full mx-auto">
       <CardHeader>
         <div className="flex justify-between items-start">
-            <CardTitle className="text-lg font-bold">
+            <CardTitle className="text-lg font-bold pr-2">
                 <a href={task.phabricatorUrl} target="_blank" rel="noopener noreferrer" className="hover:underline">
-                    [{task.id}] {task.title}
+                    {`T${task.id}: ${task.title}`}
                 </a>
             </CardTitle>
-            <Button variant="ghost" size="icon" className="h-8 w-8">
+            <Button variant="ghost" size="icon" className="h-8 w-8 flex-shrink-0">
                 <Bookmark className="h-4 w-4" />
             </Button>
         </div>
@@ -71,7 +70,12 @@ const TaskCard: FC<TaskCardProps> = ({ task }) => {
           {task.tags.slice(0, 3).map((tag) => (
             <Badge key={tag} variant="secondary" className="font-normal">{tag}</Badge>
           ))}
-           {task.detectedLanguage && <Badge variant="outline"><LanguageIcon language={task.detectedLanguage} /> <span className="ml-1">{task.detectedLanguage}</span></Badge>}
+           {task.detectedLanguage && task.detectedLanguage !== "Unknown" && (
+            <Badge variant="outline">
+                <LanguageIcon language={task.detectedLanguage} /> 
+                <span className="ml-1">{task.detectedLanguage}</span>
+            </Badge>
+           )}
         </div>
       </CardHeader>
       <CardContent className="flex-grow space-y-4">
