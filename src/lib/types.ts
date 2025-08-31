@@ -31,14 +31,18 @@ export const languages: Language[] = ["JavaScript", "Python", "Lua", "PHP", "Jav
 
 export type TaskQuery = 'good-first' | 'bot-dev' | 'core' | 'gadgets' | 'web-tools';
 
+export interface ProjectTag {
+  phid: string;
+  name: string;
+}
+
 export interface Filters {
   dateRange: {
     from?: Date;
     to?: Date;
   };
-  languages: Language[];
+  projectPHIDs: string[];
   maxSubscribers: number;
-  difficulties: Difficulty[];
   openOnly: boolean;
   query: TaskQuery | null;
   text?: string;

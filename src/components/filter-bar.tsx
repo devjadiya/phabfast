@@ -1,21 +1,26 @@
 "use client";
 
 import type { FC } from "react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { DateRange } from "react-day-picker";
 import { format } from "date-fns";
-import { Calendar as CalendarIcon, Bot, Code, Settings, Globe, RefreshCw, Star } from "lucide-react";
+import { Calendar as CalendarIcon, Bot, Code, Settings, Globe, RefreshCw, Star, X, Check, ChevronsUpDown } from "lucide-react";
 
 import { cn } from "@/lib/utils";
-import type { Filters, Language, Difficulty, TaskQuery } from "@/lib/types";
-import { languages, difficulties } from "@/lib/types";
+import type { Filters, TaskQuery, ProjectTag } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Switch } from "@/components/ui/switch";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+} from "@/components/ui/command"
 
 interface FilterBarProps {
   filters: Filters;
@@ -30,27 +35,96 @@ const trackButtons: { id: TaskQuery, label: string, icon: React.ReactNode }[] = 
     { id: 'web-tools', label: 'Web', icon: <Globe className="mr-2 h-4 w-4" /> },
 ];
 
+const TagSelect: FC<{ selectedTags: ProjectTag[], onSelectedTagsChange: (tags: ProjectTag[]) => void }> = ({ selectedTags, onSelectedTagsChange }) => {
+    const [open, setOpen] = useState(false);
+    const [allTags, setAllTags] = useState<ProjectTag[]>([]);
+
+    useEffect(() => {
+        async function fetchTags() {
+            try {
+                const res = await fetch('/api/tags');
+                const data = await res.json();
+                if (data.tags) {
+                    setAllTags(data.tags.sort((a: ProjectTag, b: ProjectTag) => a.name.localeCompare(b.name)));
+                }
+            } catch (e) {
+                console.error("Failed to fetch tags", e);
+            }
+        }
+        fetchTags();
+    }, []);
+
+    const handleSelect = (tag: ProjectTag) => {
+        const isSelected = selectedTags.some(st => st.phid === tag.phid);
+        if (isSelected) {
+            onSelectedTagsChange(selectedTags.filter(st => st.phid !== tag.phid));
+        } else {
+            onSelectedTagsChange([...selectedTags, tag]);
+        }
+    };
+    
+    return (
+        <Popover open={open} onOpenChange={setOpen}>
+            <PopoverTrigger asChild>
+                <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={open}
+                    className="w-full justify-between"
+                >
+                    <span className="truncate">
+                        {selectedTags.length > 0 ? `${selectedTags.length} selected` : "Select tags..."}
+                    </span>
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                <Command>
+                    <CommandInput placeholder="Search tags..." />
+                    <CommandEmpty>No tag found.</CommandEmpty>
+                    <CommandGroup className="max-h-64 overflow-y-auto">
+                        {allTags.map((tag) => (
+                            <CommandItem
+                                key={tag.phid}
+                                value={tag.name}
+                                onSelect={() => {
+                                    handleSelect(tag);
+                                    setOpen(true); // Keep popover open after selection
+                                }}
+                            >
+                                <Check
+                                    className={cn(
+                                        "mr-2 h-4 w-4",
+                                        selectedTags.some(st => st.phid === tag.phid) ? "opacity-100" : "opacity-0"
+                                    )}
+                                />
+                                {tag.name}
+                            </CommandItem>
+                        ))}
+                    </CommandGroup>
+                </Command>
+            </PopoverContent>
+        </Popover>
+    );
+};
+
+
 const FilterBar: FC<FilterBarProps> = ({ filters, onFilterChange, onQueryChange }) => {
   const [maxSubscribers, setMaxSubscribers] = useState(filters.maxSubscribers);
+  const [selectedTags, setSelectedTags] = useState<ProjectTag[]>([]);
 
-  const handleLanguageToggle = (lang: Language) => {
-    const newLangs = filters.languages.includes(lang)
-      ? filters.languages.filter(l => l !== lang)
-      : [...filters.languages, lang];
-    onFilterChange({ languages: newLangs });
-  };
-  
-  const handleDifficultyChange = (newDifficulties: Difficulty[]) => {
-    onFilterChange({ difficulties: newDifficulties });
-  };
+  const handleSelectedTagsChange = (newTags: ProjectTag[]) => {
+      setSelectedTags(newTags);
+      onFilterChange({ projectPHIDs: newTags.map(t => t.phid) });
+  }
 
   const resetFilters = () => {
     setMaxSubscribers(10);
+    setSelectedTags([]);
     onFilterChange({
         dateRange: { from: undefined, to: undefined },
-        languages: [],
+        projectPHIDs: [],
         maxSubscribers: 10,
-        difficulties: [],
     });
     onQueryChange(null);
   }
@@ -84,39 +158,12 @@ const FilterBar: FC<FilterBarProps> = ({ filters, onFilterChange, onQueryChange 
           </div>
         </div>
 
-        <div className="md:col-span-3 space-y-2">
-            <Label>Difficulty</Label>
-            <ToggleGroup 
-                type="multiple" 
-                variant="outline" 
-                value={filters.difficulties}
-                onValueChange={handleDifficultyChange}
-                className="justify-start"
-                aria-label="Difficulty filter"
-            >
-                {difficulties.map(diff => (
-                    <ToggleGroupItem key={diff} value={diff} aria-label={diff}>{diff}</ToggleGroupItem>
-                ))}
-            </ToggleGroup>
-        </div>
-        
-        <div className="md:col-span-9 space-y-2">
-            <Label>Languages</Label>
-            <div className="flex flex-wrap gap-2">
-            {languages.filter(l => l !== 'Unknown').map((lang) => (
-              <Button
-                key={lang}
-                variant={filters.languages.includes(lang) ? 'secondary' : 'outline'}
-                size="sm"
-                onClick={() => handleLanguageToggle(lang)}
-              >
-                {lang}
-              </Button>
-            ))}
-            </div>
-        </div>
-        
         <div className="md:col-span-5 space-y-2">
+            <Label>Project Tags</Label>
+             <TagSelect selectedTags={selectedTags} onSelectedTagsChange={handleSelectedTagsChange} />
+        </div>
+        
+        <div className="md:col-span-4 space-y-2">
              <Label htmlFor="date-range-picker-trigger">Date Range</Label>
              <Popover>
                 <PopoverTrigger asChild>
@@ -157,7 +204,7 @@ const FilterBar: FC<FilterBarProps> = ({ filters, onFilterChange, onQueryChange 
             </Popover>
         </div>
         
-        <div className="md:col-span-4 space-y-2">
+        <div className="md:col-span-3 space-y-2">
             <Label htmlFor="subscribers-slider" className="flex items-center">
                 Max Subscribers: {maxSubscribers}
             </Label>
@@ -171,17 +218,6 @@ const FilterBar: FC<FilterBarProps> = ({ filters, onFilterChange, onQueryChange 
                 onValueCommit={(value) => onFilterChange({ maxSubscribers: value[0] })}
                 aria-label="Maximum number of subscribers"
             />
-        </div>
-        
-        <div className="md:col-span-3 space-y-2 flex items-end">
-            <div className="flex items-center space-x-2">
-                <Switch 
-                    id="ai-guess"
-                    checked={true}
-                    disabled
-                />
-                <Label htmlFor="ai-guess">AI Language Detection</Label>
-            </div>
         </div>
       </div>
     </div>

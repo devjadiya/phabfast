@@ -52,7 +52,7 @@ interface PhabricatorResponse {
 }
 
 
-export async function searchPhabricatorTasks(constraints: object = {}, attachments: object = {}, after?: string, order?: string, limit: number = 20): Promise<{ tasks: Task[], nextCursor: string | null }> {
+export async function searchPhabricatorTasks(constraints: any = {}, attachments: object = {}, after?: string, order?: string, limit: number = 20): Promise<{ tasks: Task[], nextCursor: string | null }> {
   if (!PHABRICATOR_API_URL || !PHABRICATOR_API_TOKEN) {
     console.error("Phabricator API URL or Token not set in .env");
     throw new Error("Phabricator API URL or Token not set.");
@@ -143,4 +143,48 @@ export async function searchPhabricatorTasks(constraints: object = {}, attachmen
     console.error('Failed to fetch tasks from Phabricator:', error);
     throw new Error("Failed to fetch tasks from Phabricator.");
   }
+}
+
+export async function fetchAllProjectTags(): Promise<{phid: string; name: string}[]> {
+  if (!PHABRICATOR_API_URL || !PHABRICATOR_API_TOKEN) {
+    console.error("Phabricator API URL or Token not set in .env");
+    throw new Error("Phabricator API URL or Token not set.");
+  }
+  
+  const allProjects: {phid: string; name: string}[] = [];
+  let after: string | null = null;
+
+  do {
+    const params = new URLSearchParams();
+    params.append('api.token', PHABRICATOR_API_TOKEN);
+    if (after) {
+        params.append('after', after);
+    }
+    params.append('limit', '100');
+
+    const response = await fetch(`${PHABRICATOR_API_URL}/project.search`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: params.toString(),
+      next: { revalidate: 86400 } // Revalidate once a day
+    });
+
+    if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Phabricator API Error:', errorText);
+        throw new Error(`Phabricator API request failed: ${response.statusText} - ${errorText}`);
+    }
+
+    const json = await response.json();
+    if (json.error_code) {
+      console.error('Phabricator API Error:', json.error_info);
+      throw new Error(json.error_info || 'Unknown Phabricator API Error');
+    }
+
+    const result = json.result;
+    allProjects.push(...result.data.map((p: any) => ({phid: p.phid, name: p.fields.name})));
+    after = result.cursor?.after || null;
+  } while (after);
+
+  return allProjects;
 }

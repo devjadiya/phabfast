@@ -37,9 +37,8 @@ const INITIAL_FILTERS: Filters = {
     from: undefined,
     to: undefined,
   },
-  languages: [],
+  projectPHIDs: [],
   maxSubscribers: 10,
-  difficulties: [],
   openOnly: true,
   query: 'good-first',
   text: '',
@@ -262,7 +261,8 @@ const Page: FC = () => {
     const currentQuery = filters.query;
     const combinedFilters = { ...filters, ...newFilters };
     
-    if (newFilters.languages?.length || newFilters.difficulties?.length) {
+    // Don't reset query if other filters are applied
+    if (newFilters.projectPHIDs?.length) {
       combinedFilters.query = currentQuery;
     }
     
@@ -270,7 +270,7 @@ const Page: FC = () => {
   };
   
   const handleQueryChange = (query: TaskQuery | null) => {
-    setFilters(prev => ({ ...INITIAL_FILTERS, query: query }));
+    setFilters(prev => ({ ...INITIAL_FILTERS, query: query, projectPHIDs: [] }));
   };
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -306,17 +306,8 @@ const Page: FC = () => {
   const sortedTasks = useMemo(() => {
     let tasksToFilter = [...tasks];
 
-    if (filters.difficulties && filters.difficulties.length > 0) {
-        tasksToFilter = tasksToFilter.filter(task => filters.difficulties.includes(task.difficulty));
-    }
-
-    if (filters.languages && filters.languages.length > 0) {
-      tasksToFilter = tasksToFilter.filter(task => {
-        const taskLanguage = task.detectedLanguage || 'Unknown';
-        return filters.languages.includes(taskLanguage as Language);
-      })
-    }
-
+    // AI-based filtering happens post-fetch, so it's not here.
+    // Sorting logic remains client-side for immediate user feedback.
     if (sortOption === 'subscribers') {
         return tasksToFilter.sort((a, b) => b.subscribers - a.subscribers);
     }
@@ -331,7 +322,7 @@ const Page: FC = () => {
     }
 
     return tasksToFilter;
-  }, [tasks, sortOption, filters.difficulties, filters.languages]);
+  }, [tasks, sortOption]);
 
   const handleExport = async (format: "csv" | "md") => {
     try {
@@ -358,7 +349,7 @@ description: "There was an error exporting your tasks.",
 }
 };
   const removeFilterChip = (filterType: keyof Filters, value: any) => {
-    if (filterType === 'languages' || filterType === 'difficulties') {
+    if (filterType === 'projectPHIDs') {
       const currentValues = filters[filterType] as string[];
       handleFilterChange({ [filterType]: currentValues.filter(item => item !== value) } as Partial<Filters>);
     } else if (filterType === 'query') {
@@ -367,9 +358,7 @@ description: "There was an error exporting your tasks.",
   };
 
   const activeFilters = [
-    ...(filters.query ? [{type: 'query' as keyof Filters, value: filters.query, label: filters.query.replace(/-/g, ' ')}] : []),
-    ...(filters.languages?.map(l => ({type: 'languages' as keyof Filters, value: l, label: l})) || []),
-    ...(filters.difficulties?.map(d => ({type: 'difficulties' as keyof Filters, value: d, label: d})) || [])
+    ...(filters.query ? [{type: 'query' as keyof Omit<Filters, 'projectPHIDs'>, value: filters.query, label: filters.query.replace(/-/g, ' ')}] : []),
   ];
 
   return (
@@ -400,7 +389,7 @@ description: "There was an error exporting your tasks.",
                     </button>
                     </Badge>
                 ))}
-                <Button variant="ghost" size="sm" onClick={() => setFilters(prev => ({...prev, languages: [], difficulties: [], query: null}))}>
+                <Button variant="ghost" size="sm" onClick={() => setFilters(prev => ({...prev, projectPHIDs: [], query: null}))}>
                     Reset All
                 </Button>
                 </div>

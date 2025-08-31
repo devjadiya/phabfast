@@ -47,13 +47,17 @@ export async function POST(req: Request) {
         constraints.statuses = ['open'];
     }
     
+    let projectPHIDs: string[] = filters.projectPHIDs || [];
+
     if (filters.query && projectPhidMap[filters.query]) {
-        constraints.projects = projectPhidMap[filters.query];
+        projectPHIDs = [...new Set([...projectPHIDs, ...projectPhidMap[filters.query]])];
     }
     
-    // Add full text search as a fallback/broadener, especially for tracks
+    if (projectPHIDs.length > 0) {
+        constraints.projects = projectPHIDs;
+    }
+
     if (filters.query && queryToKeyword[filters.query]) {
-        // If a text filter is also present, combine them.
         constraints.query = filters.text ? `${queryToKeyword[filters.query]} ${filters.text}` : queryToKeyword[filters.query];
     } else if (filters.text) {
         constraints.query = filters.text;
