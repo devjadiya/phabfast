@@ -1,16 +1,27 @@
 import { NextResponse } from 'next/server';
 import { searchPhabricatorTasks } from '@/lib/phabricator';
 
-function toEpoch(dateStr: string, endOfDay = false) {
-    const date = new Date(dateStr);
-    const timezoneOffset = date.getTimezoneOffset() * 60000;
-    const utcDate = new Date(date.getTime() - timezoneOffset);
+function toEpoch(dateInput: string | Date, endOfDay = false) {
+    const date = typeof dateInput === 'string' ? new Date(dateInput) : dateInput;
     
-    if (endOfDay) {
-      utcDate.setUTCHours(23, 59, 59, 999);
-    } else {
-      utcDate.setUTCHours(0, 0, 0, 0);
+    // Check if the date is valid
+    if (isNaN(date.getTime())) {
+        // Handle invalid date string gracefully. 
+        // Depending on requirements, could return null, 0, or throw an error.
+        // For this API, returning null might be safest to not filter by a bad date.
+        return null;
     }
+    
+    const utcDate = new Date(Date.UTC(
+        date.getFullYear(), 
+        date.getMonth(), 
+        date.getDate(),
+        endOfDay ? 23 : 0, 
+        endOfDay ? 59 : 0, 
+        endOfDay ? 59 : 0, 
+        endOfDay ? 999 : 0
+    ));
+    
     return Math.floor(utcDate.getTime() / 1000);
 }
 
@@ -48,6 +59,7 @@ export async function POST(req: Request) {
     }
     
     let projectPHIDs: string[] = filters.projectPHIDs || [];
+    let queryKeyword = '';
 
     if (filters.query && projectPhidMap[filters.query]) {
         projectPHIDs = [...new Set([...projectPHIDs, ...projectPhidMap[filters.query]])];
@@ -58,16 +70,22 @@ export async function POST(req: Request) {
     }
 
     if (filters.query && queryToKeyword[filters.query]) {
-        constraints.query = filters.text ? `${queryToKeyword[filters.query]} ${filters.text}` : queryToKeyword[filters.query];
-    } else if (filters.text) {
-        constraints.query = filters.text;
+        queryKeyword = queryToKeyword[filters.query];
+    }
+    
+    const fullTextQuery = filters.text ? `${queryKeyword} ${filters.text}`.trim() : queryKeyword;
+
+    if (fullTextQuery) {
+        constraints.query = fullTextQuery;
     }
     
     if (filters.dateRange?.from) {
-        constraints.createdStart = toEpoch(filters.dateRange.from as any);
+        const createdStart = toEpoch(filters.dateRange.from);
+        if (createdStart) constraints.createdStart = createdStart;
     }
     if (filters.dateRange?.to) {
-        constraints.createdEnd = toEpoch(filters.dateRange.to as any, true);
+        const createdEnd = toEpoch(filters.dateRange.to, true);
+        if (createdEnd) constraints.createdEnd = createdEnd;
     }
     
     const attachments = {

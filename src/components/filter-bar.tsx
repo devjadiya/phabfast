@@ -155,20 +155,20 @@ const FilterBar: FC<FilterBarProps> = ({ filters, onFilterChange, onQueryChange 
   }
 
   const setDateRangePreset = (preset: 'today' | '7d' | '30d') => {
-      const today = new Date();
-      let fromDate: Date;
+      const to = new Date();
+      let from;
       switch(preset) {
           case 'today':
-              fromDate = today;
+              from = new Date();
               break;
           case '7d':
-              fromDate = subDays(today, 7);
+              from = subDays(new Date(), 6); // Includes today
               break;
           case '30d':
-              fromDate = subDays(today, 30);
+              from = subDays(new Date(), 29); // Includes today
               break;
       }
-      onFilterChange({ dateRange: { from: fromDate, to: today }});
+      onFilterChange({ dateRange: { from, to }});
   }
 
   return (
