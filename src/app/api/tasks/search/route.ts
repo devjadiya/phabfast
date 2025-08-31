@@ -15,12 +15,19 @@ function toEpoch(dateStr: string, endOfDay = false) {
 }
 
 // Mapping from simple query aliases to their stable Phabricator Project PHIDs
-const projectPhidMap: Record<string, string> = {
-    'good-first': 'PHID-PROJ-cqz2i3rff52i2o4j4m2s', // Good first task
-    'bot-dev': 'PHID-PROJ-6k5i2l4w4q2p7k2n4x6e', // Bots
-    'core': 'PHID-PROJ-evy6ry35h44jbgyz33mp', // MediaWiki-Core
-    'gadgets': 'PHID-PROJ-ylt7fu5sxyuxb3xdrxdi', // MediaWiki-Gadgets
-    'web-tools': 'PHID-PROJ-s66yyqj5t4uwx3vjfxqe', // Toolforge
+const projectPhidMap: Record<string, string[]> = {
+    'good-first': ['PHID-PROJ-cqz2i3rff52i2o4j4m2s'], // Good first task
+    'bot-dev': [
+        'PHID-PROJ-6k5i2l4w4q2p7k2n4x6e', // Bots
+        'PHID-PROJ-7y5v2k6x3j4f6a5d7c8b', // Pywikibot
+        'PHID-PROJ-s66yyqj5t4uwx3vjfxqe'  // Toolforge
+    ],
+    'core': ['PHID-PROJ-evy6ry35h44jbgyz33mp'], // MediaWiki-Core
+    'gadgets': ['PHID-PROJ-ylt7fu5sxyuxb3xdrxdi'], // MediaWiki-Gadgets
+    'web-tools': [
+        'PHID-PROJ-s66yyqj5t4uwx3vjfxqe', // Toolforge
+        'PHID-PROJ-g6h7i8j9k1l2m3n4o5p6'  // Cloud-Services
+    ],
 };
 
 
@@ -41,7 +48,7 @@ export async function POST(req: Request) {
     }
     
     if (filters.query && projectPhidMap[filters.query]) {
-        projectConstraints.push(projectPhidMap[filters.query]);
+        projectConstraints.push(...projectPhidMap[filters.query]);
     }
 
     if (projectConstraints.length > 0) {
