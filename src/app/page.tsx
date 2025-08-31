@@ -26,6 +26,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { Label } from "@/components/ui/label";
 
 
 const INITIAL_FILTERS: Filters = {
@@ -64,54 +65,62 @@ async function fetchTasksFromApi(filters: Filters): Promise<Task[]> {
   }
 }
 
-async function enrichTasks(tasks: Task[]): Promise<Task[]> {
-    const enrichedTasks = await Promise.all(
-        tasks.map(async (task) => {
-            let detectedLanguage: Language | 'Unknown' = 'Unknown';
-            let gerritUrl: string | undefined = undefined;
-            let difficulty: Difficulty | 'Medium' = 'Medium';
+async function enrichTask(task: Task): Promise<Task> {
+    let detectedLanguage: Language | 'Unknown' = 'Unknown';
+    let gerritUrl: string | undefined = undefined;
+    let difficulty: Difficulty | 'Medium' = 'Medium';
 
-            try {
-                // Language Detection
-                const langResponse = await fetch('/api/tasks/detect-language', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ description: `${task.title} ${task.description}` })
-                });
-                if (langResponse.ok) {
-                    const langData = await langResponse.json();
-                    detectedLanguage = langData.language;
-                }
-            } catch (e) { /* ignore */ }
+    try {
+        // Language Detection
+        const langResponse = await fetch('/api/tasks/detect-language', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ description: `${task.title} ${task.description}` })
+        });
+        if (langResponse.ok) {
+            const langData = await langResponse.json();
+            detectedLanguage = langData.language;
+        }
+    } catch (e) { /* ignore */ }
 
-            try {
-                // Gerrit Patch
-                const gerritResponse = await fetch(`/api/gerrit/${task.id}`);
-                if (gerritResponse.ok) {
-                    const gerritData = await gerritResponse.json();
-                    gerritUrl = gerritData.url;
-                }
-            } catch (e) { /* ignore */ }
-            
-            return { ...task, detectedLanguage, gerritUrl, difficulty };
-        })
-    );
-    return enrichedTasks;
+    try {
+        // Gerrit Patch
+        const gerritResponse = await fetch(`/api/gerrit/${task.id}`);
+        if (gerritResponse.ok) {
+            const gerritData = await gerritResponse.json();
+            gerritUrl = gerritData.url;
+        }
+    } catch (e) { /* ignore */ }
+
+    try {
+        // Difficulty Detection
+        const difficultyResponse = await fetch('/api/tasks/difficulty', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ description: `${task.title} ${task.description}` })
+        });
+        if (difficultyResponse.ok) {
+            const diffData = await difficultyResponse.json();
+            difficulty = diffData.difficulty;
+        }
+    } catch(e) { /* ignore */ }
+    
+    return { ...task, detectedLanguage, gerritUrl, difficulty };
 }
 
 async function exportTasks(tasks: Task[], format: "csv" | "md"): Promise<string> {
   if (format === "csv") {
-    const header = "ID,Title,Created At,Subscribers,Language,Tags,URL\n";
+    const header = "ID,Title,Created At,Subscribers,Language,Difficulty,Tags,URL\n";
     const rows = tasks.map(task =>
-      `"${task.id}","${task.title}","${task.createdAt}","${task.subscribers}","${task.detectedLanguage || 'N/A'}","${task.tags.join(', ')}","${task.phabricatorUrl}"`
+      `"T${task.id}","${task.title}","${task.createdAt}","${task.subscribers}","${task.detectedLanguage || 'N/A'}","${(task as any).difficulty || 'N/A'}","${task.tags.join(', ')}","${task.phabricatorUrl}"`
     ).join("\n");
     return header + rows;
   }
 
   if (format === "md") {
-    const header = "| ID | Title | Created At | Subs | Lang | URL |\n|----|-------|------------|------|------|-----|\n";
+    const header = "| ID | Title | Created At | Subs | Lang | Difficulty | URL |\n|----|-------|------------|------|------|------------|-----|\n";
     const rows = tasks.map(task =>
-      `| ${task.id} | ${task.title} | ${task.createdAt} | ${task.subscribers} | ${task.detectedLanguage || 'N/A'} | [Link](${task.phabricatorUrl}) |`
+      `| T${task.id} | ${task.title} | ${task.createdAt} | ${task.subscribers} | ${task.detectedLanguage || 'N/A'} | ${(task as any).difficulty || 'N/A'} | [Link](${task.phabricatorUrl}) |`
     ).join("\n");
     return header + rows;
   }
@@ -131,9 +140,17 @@ const Page: FC = () => {
     startTransition(async () => {
       try {
         const fetchedTasks = await fetchTasksFromApi(filters);
-        setTasks(fetchedTasks); // Set base tasks first for responsiveness
-        const enriched = await enrichTasks(fetchedTasks);
-        setTasks(enriched); // Set enriched tasks
+        setTasks(fetchedTasks); 
+        
+        fetchedTasks.forEach(async (task, index) => {
+            const enrichedTask = await enrichTask(task);
+            setTasks(prevTasks => {
+                const newTasks = [...prevTasks];
+                newTasks[index] = enrichedTask;
+                return newTasks;
+            });
+        });
+
       } catch (error) {
         console.error("Failed to fetch tasks:", error);
         toast({
@@ -181,16 +198,21 @@ const Page: FC = () => {
   
   const sortedTasks = useMemo(() => {
     const difficultyOrder: Difficulty[] = ['Easy', 'Medium', 'Hard'];
-    const languageOrder: Language[] = [...languages, 'Unknown'];
 
     let tasksToFilter = [...tasks];
 
-    // Client-side filtering for difficulties, as AI detection is now on the client
     if (filters.difficulties && filters.difficulties.length > 0) {
         tasksToFilter = tasksToFilter.filter(task => {
-            const taskDifficulty = (task as any).difficulty || 'Medium'; // Default if not detected
+            const taskDifficulty = (task as any).difficulty || 'Medium'; 
             return filters.difficulties.includes(taskDifficulty);
         });
+    }
+
+    if (filters.languages && filters.languages.length > 0) {
+      tasksToFilter = tasksToFilter.filter(task => {
+        const taskLanguage = (task as any).detectedLanguage || 'Unknown';
+        return filters.languages.includes(taskLanguage);
+      })
     }
 
     return tasksToFilter.sort((a, b) => {
@@ -208,7 +230,7 @@ const Page: FC = () => {
                 return 0;
         }
     });
-  }, [tasks, sortOption, filters.difficulties]);
+  }, [tasks, sortOption, filters.difficulties, filters.languages]);
 
   const handleExport = async (format: "csv" | "md") => {
     try {
@@ -245,7 +267,7 @@ const Page: FC = () => {
   };
 
   const activeFilters = [
-    ...(filters.query ? [{type: 'query' as keyof Filters, value: filters.query, label: filters.query.replace('-', ' ')}] : []),
+    ...(filters.query ? [{type: 'query' as keyof Filters, value: filters.query, label: filters.query.replace(/-/g, ' ')}] : []),
     ...(filters.languages?.map(l => ({type: 'languages' as keyof Filters, value: l, label: l})) || []),
     ...(filters.difficulties?.map(d => ({type: 'difficulties' as keyof Filters, value: d, label: d})) || [])
   ];
@@ -289,9 +311,9 @@ const Page: FC = () => {
                     Found {sortedTasks.length} {sortedTasks.length === 1 ? 'task' : 'tasks'}.
                 </p>
                 <div className="flex items-center gap-2">
-                    <span className="text-sm text-muted-foreground">Sort by:</span>
+                    <Label htmlFor="sort-by" className="text-sm text-muted-foreground">Sort by:</Label>
                      <Select value={sortOption} onValueChange={(value) => setSortOption(value as SortOption)}>
-                        <SelectTrigger className="w-[180px]">
+                        <SelectTrigger id="sort-by" className="w-[180px]">
                             <SelectValue placeholder="Sort by" />
                         </SelectTrigger>
                         <SelectContent>

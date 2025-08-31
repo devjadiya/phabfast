@@ -1,6 +1,7 @@
 import type { FC } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { BrainCircuit, RefreshCw, Search } from 'lucide-react';
 
 interface HeaderProps {
@@ -29,8 +30,10 @@ const Header: FC<HeaderProps> = ({
         </div>
         <div className="flex items-center gap-2">
           <div className="relative w-64">
+            <Label htmlFor="search-tasks" className="sr-only">Search Tasks</Label>
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input 
+              id="search-tasks"
               type="search"
               placeholder="Search tasks by keyword..."
               className="pl-9"
