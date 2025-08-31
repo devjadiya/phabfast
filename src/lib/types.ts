@@ -1,13 +1,25 @@
 export interface Task {
-  id: string;
+  id: number;
+  phid: string;
   title: string;
-  createdAt: string;
-  tags: string[];
+  uri: string;
+  authorPHID: string;
+  ownerPHID: string;
+  status: string;
+  statusName: string;
+  isClosed: boolean;
+  dateCreated: number;
+  dateModified: number;
+  description: string; // This is a custom field for the description
+  subscriberPHIDs: string[]; // Custom field for subscribers
+  projectPHIDs: string[]; // Custom field for projects/tags
+  points: number;
   subscribers: number;
-  description: string;
-  phabricatorUrl: string;
-  gerritUrl?: string;
   detectedLanguage?: string;
+  gerritUrl?: string; // This is not from phabricator, might need custom logic
+  tags: string[];
+  phabricatorUrl: string;
+  createdAt: string;
 }
 
 export type Difficulty = "Easy" | "Medium" | "Hard";
