@@ -112,7 +112,7 @@ async function exportTasks(tasks: Task[], format: "csv" | "md"): Promise<string>
   if (format === "csv") {
     const header = "ID,Title,Created At,Subscribers,Language,Difficulty,Tags,URL\n";
     const rows = tasks.map(task =>
-      `"T${task.id}","${task.title}","${task.createdAt}","${task.subscribers}","${task.detectedLanguage || 'N/A'}","${(task as any).difficulty || 'N/A'}","${task.tags.join(', ')}","${task.phabricatorUrl}"`
+      `"T${task.id}","${task.title}","${task.createdAt}","${task.subscribers}","${task.detectedLanguage || 'N/A'}","${task.difficulty || 'N/A'}","${task.tags.join(', ')}","${task.phabricatorUrl}"`
     ).join("\n");
     return header + rows;
   }
@@ -120,7 +120,7 @@ async function exportTasks(tasks: Task[], format: "csv" | "md"): Promise<string>
   if (format === "md") {
     const header = "| ID | Title | Created At | Subs | Lang | Difficulty | URL |\n|----|-------|------------|------|------|------------|-----|\n";
     const rows = tasks.map(task =>
-      `| T${task.id} | ${task.title} | ${task.createdAt} | ${task.subscribers} | ${task.detectedLanguage || 'N/A'} | ${(task as any).difficulty || 'N/A'} | [Link](${task.phabricatorUrl}) |`
+      `| T${task.id} | ${task.title} | ${task.createdAt} | ${task.subscribers} | ${task.detectedLanguage || 'N/A'} | ${task.difficulty || 'N/A'} | [Link](${task.phabricatorUrl}) |`
     ).join("\n");
     return header + rows;
   }
@@ -140,8 +140,16 @@ const Page: FC = () => {
     startTransition(async () => {
       try {
         const fetchedTasks = await fetchTasksFromApi(filters);
-        setTasks(fetchedTasks); 
         
+        // Set initial tasks without enrichment for faster display
+        const initialTasks = fetchedTasks.map(task => ({
+            ...task,
+            difficulty: 'Medium' as Difficulty,
+            detectedLanguage: 'Unknown' as Language
+        }));
+        setTasks(initialTasks); 
+        
+        // Enrich tasks one by one
         fetchedTasks.forEach(async (task, index) => {
             const enrichedTask = await enrichTask(task);
             setTasks(prevTasks => {
@@ -202,16 +210,13 @@ const Page: FC = () => {
     let tasksToFilter = [...tasks];
 
     if (filters.difficulties && filters.difficulties.length > 0) {
-        tasksToFilter = tasksToFilter.filter(task => {
-            const taskDifficulty = (task as any).difficulty || 'Medium'; 
-            return filters.difficulties.includes(taskDifficulty);
-        });
+        tasksToFilter = tasksToFilter.filter(task => filters.difficulties.includes(task.difficulty));
     }
 
     if (filters.languages && filters.languages.length > 0) {
       tasksToFilter = tasksToFilter.filter(task => {
-        const taskLanguage = (task as any).detectedLanguage || 'Unknown';
-        return filters.languages.includes(taskLanguage);
+        const taskLanguage = task.detectedLanguage || 'Unknown';
+        return filters.languages.includes(taskLanguage as Language);
       })
     }
 
@@ -222,9 +227,7 @@ const Page: FC = () => {
             case 'subscribers':
                 return a.subscribers - b.subscribers;
             case 'difficulty': {
-                const difficultyA = (a as any).difficulty || 'Medium';
-                const difficultyB = (b as any).difficulty || 'Medium';
-                return difficultyOrder.indexOf(difficultyA) - difficultyOrder.indexOf(difficultyB);
+                return difficultyOrder.indexOf(a.difficulty) - difficultyOrder.indexOf(b.difficulty);
             }
             default:
                 return 0;
@@ -234,7 +237,7 @@ const Page: FC = () => {
 
   const handleExport = async (format: "csv" | "md") => {
     try {
-      const fileContent = await exportTasks(tasks, format);
+      const fileContent = await exportTasks(sortedTasks, format);
       const blob = new Blob([fileContent], { type: format === 'csv' ? 'text/csv' : 'text/markdown' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -293,7 +296,7 @@ const Page: FC = () => {
                 {activeFilters.map(filter => (
                     <Badge key={`${filter.type}-${filter.value}`} variant="secondary" className="flex items-center gap-1 capitalize">
                     {filter.label}
-                    <button onClick={() => removeFilterChip(filter.type, filter.value)} className="rounded-full hover:bg-muted-foreground/20">
+                    <button onClick={() => removeFilterChip(filter.type, filter.value)} className="rounded-full hover:bg-muted-foreground/20" aria-label={`Remove ${filter.label} filter`}>
                         <X className="h-3 w-3" />
                     </button>
                     </Badge>

@@ -20,13 +20,14 @@ export interface Task {
   tags: string[];
   phabricatorUrl: string;
   createdAt: string;
+  difficulty: Difficulty;
 }
 
 export type Difficulty = "Easy" | "Medium" | "Hard";
 export const difficulties: Difficulty[] = ["Easy", "Medium", "Hard"];
 
-export type Language = "JavaScript" | "Python" | "Lua" | "PHP" | "Other" | "Unknown";
-export const languages: Language[] = ["JavaScript", "Python", "Lua", "PHP", "Other"];
+export type Language = "JavaScript" | "Python" | "Lua" | "PHP" | "Java" | "Other" | "Unknown";
+export const languages: Language[] = ["JavaScript", "Python", "Lua", "PHP", "Java", "Other"];
 
 export type TaskQuery = 'good-first' | 'bot-dev' | 'core' | 'gadgets' | 'web-tools';
 

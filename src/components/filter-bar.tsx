@@ -57,7 +57,7 @@ const FilterBar: FC<FilterBarProps> = ({ filters, onFilterChange, onQueryChange 
 
   return (
     <div className="rounded-lg border bg-card p-4 text-card-foreground shadow-sm relative">
-        <Button variant="ghost" size="icon" onClick={resetFilters} className="absolute top-1 right-1">
+        <Button variant="ghost" size="icon" onClick={resetFilters} className="absolute top-1 right-1" aria-label="Reset filters">
             <RefreshCw className="h-4 w-4" />
         </Button>
       <div className="grid grid-cols-1 gap-6 md:grid-cols-12">
@@ -86,9 +86,10 @@ const FilterBar: FC<FilterBarProps> = ({ filters, onFilterChange, onQueryChange 
                 value={filters.difficulties}
                 onValueChange={handleDifficultyChange}
                 className="justify-start"
+                aria-label="Difficulty filter"
             >
                 {difficulties.map(diff => (
-                    <ToggleGroupItem key={diff} value={diff}>{diff}</ToggleGroupItem>
+                    <ToggleGroupItem key={diff} value={diff} aria-label={diff}>{diff}</ToggleGroupItem>
                 ))}
             </ToggleGroup>
         </div>
@@ -114,8 +115,9 @@ const FilterBar: FC<FilterBarProps> = ({ filters, onFilterChange, onQueryChange 
              <Popover>
                 <PopoverTrigger asChild>
                     <Button
-                    id="date"
+                    id="date-range-picker"
                     variant={"outline"}
+                    aria-label="Pick a date range for tasks"
                     className={cn(
                         "w-full justify-start text-left font-normal",
                         !filters.dateRange.from && "text-muted-foreground"

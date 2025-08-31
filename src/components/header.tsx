@@ -29,17 +29,20 @@ const Header: FC<HeaderProps> = ({
           </h1>
         </div>
         <div className="flex items-center gap-2">
-           <div className="relative w-64" onKeyDown={onSearchKeyDown}>
+           <div className="relative flex w-full max-w-sm items-center">
             <Label htmlFor="search-tasks" className="sr-only">Search Tasks</Label>
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input 
               id="search-tasks"
               type="search"
               placeholder="Search tasks by keyword..."
-              className="pl-9"
+              className="pr-10"
               value={searchText}
               onChange={onSearchChange}
+              onKeyDown={onSearchKeyDown}
             />
+            <Button type="submit" size="icon" className="absolute right-1 h-8 w-8" onClick={onSearchSubmit} aria-label="Search">
+                <Search className="h-4 w-4" />
+            </Button>
           </div>
           <Button variant="outline" size="icon" onClick={onRefresh} aria-label="Refresh tasks">
             <RefreshCw className="h-4 w-4" />
