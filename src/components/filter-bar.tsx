@@ -4,7 +4,7 @@ import type { FC } from "react";
 import { useState } from "react";
 import type { DateRange } from "react-day-picker";
 import { format } from "date-fns";
-import { Calendar as CalendarIcon, Bot, Code, Settings, Globe, RefreshCw } from "lucide-react";
+import { Calendar as CalendarIcon, Bot, Code, Settings, Globe, RefreshCw, Star } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import type { Filters, Language, Difficulty, TaskQuery } from "@/lib/types";
@@ -61,21 +61,27 @@ const FilterBar: FC<FilterBarProps> = ({ filters, onFilterChange, onQueryChange 
             <RefreshCw className="h-4 w-4" />
         </Button>
       <div className="grid grid-cols-1 gap-6 md:grid-cols-12">
-
-        <div className="md:col-span-4 space-y-2">
-            <Label>Track Selector</Label>
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
-                {trackButtons.map(({ id, label, icon }) => (
-                    <Button 
-                        key={id} 
-                        variant={filters.query === id ? 'default' : 'outline'}
-                        onClick={() => onQueryChange(id)}
-                        className="justify-start"
-                    >
-                        {icon} {label}
-                    </Button>
-                ))}
-            </div>
+        <div className="md:col-span-12">
+          <Label>Quick Filters</Label>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 mt-2">
+              <Button
+                  variant={filters.query === 'good-first' ? 'default' : 'outline'}
+                  onClick={() => onQueryChange('good-first')}
+                  className="justify-start bg-amber-500/10 border-amber-500/50 text-amber-700 hover:bg-amber-500/20"
+              >
+                  <Star className="mr-2 h-4 w-4" /> Good First Task
+              </Button>
+              {trackButtons.map(({ id, label, icon }) => (
+                  <Button 
+                      key={id} 
+                      variant={filters.query === id ? 'default' : 'outline'}
+                      onClick={() => onQueryChange(id)}
+                      className="justify-start"
+                  >
+                      {icon} {label}
+                  </Button>
+              ))}
+          </div>
         </div>
 
         <div className="md:col-span-3 space-y-2">
@@ -94,10 +100,10 @@ const FilterBar: FC<FilterBarProps> = ({ filters, onFilterChange, onQueryChange 
             </ToggleGroup>
         </div>
         
-        <div className="md:col-span-5 space-y-2">
+        <div className="md:col-span-9 space-y-2">
             <Label>Languages</Label>
             <div className="flex flex-wrap gap-2">
-            {languages.map((lang) => (
+            {languages.filter(l => l !== 'Unknown').map((lang) => (
               <Button
                 key={lang}
                 variant={filters.languages.includes(lang) ? 'default' : 'outline'}
@@ -111,11 +117,11 @@ const FilterBar: FC<FilterBarProps> = ({ filters, onFilterChange, onQueryChange 
         </div>
         
         <div className="md:col-span-5 space-y-2">
-             <Label>Date Range</Label>
+             <Label htmlFor="date-range-picker-trigger">Date Range</Label>
              <Popover>
                 <PopoverTrigger asChild>
                     <Button
-                    id="date-range-picker"
+                    id="date-range-picker-trigger"
                     variant={"outline"}
                     aria-label="Pick a date range for tasks"
                     className={cn(
@@ -163,6 +169,7 @@ const FilterBar: FC<FilterBarProps> = ({ filters, onFilterChange, onQueryChange 
                 value={[maxSubscribers]}
                 onValueChange={(value) => setMaxSubscribers(value[0])}
                 onValueCommit={(value) => onFilterChange({ maxSubscribers: value[0] })}
+                aria-label="Maximum number of subscribers"
             />
         </div>
         

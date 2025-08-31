@@ -19,7 +19,8 @@ export async function POST(req: Request) {
     const { filters, after, order } = await req.json();
     
     const constraints: any = {};
-    const queryParts: string[] = [];
+    const projectConstraints: string[] = [];
+    let queryParts: string[] = [];
 
     if (filters.openOnly) {
         constraints.statuses = ['open'];
@@ -30,13 +31,17 @@ export async function POST(req: Request) {
     }
     
     if (filters.query) {
-        if(filters.query === 'good-first') queryParts.push('good first task');
-        if(filters.query === 'bot-dev') queryParts.push('bots');
-        if(filters.query === 'core') queryParts.push('MediaWiki OR core');
-        if(filters.query === 'gadgets') queryParts.push('gadget OR template');
-        if(filters.query === 'web-tools') queryParts.push('tools OR Toolforge');
+        if (filters.query === 'good-first') projectConstraints.push('good first task');
+        if (filters.query === 'bot-dev') projectConstraints.push('bots');
+        if (filters.query === 'core') projectConstraints.push('MediaWiki-Core');
+        if (filters.query === 'gadgets') projectConstraints.push('MediaWiki-Gadgets');
+        if (filters.query === 'web-tools') projectConstraints.push('Toolforge');
     }
 
+    if (projectConstraints.length > 0) {
+        constraints.projects = projectConstraints;
+    }
+    
     if(queryParts.length > 0) {
         constraints.query = queryParts.join(' ');
     }
