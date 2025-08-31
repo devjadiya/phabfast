@@ -185,26 +185,28 @@ const Page: FC = () => {
     try {
         const { tasks: newTasks, nextCursor: newNextCursor } = await fetchTasksFromApi(filters, nextCursor);
         
-        const enrichedNewTasksPromise = Promise.all(newTasks.map(task => enrichTask(task)));
-        
-        setTasks(prevTasks => [...prevTasks, ...newTasks.map(task => ({
+        // Append new tasks for immediate display
+        const initialNewTasks = newTasks.map(task => ({
             ...task,
             difficulty: 'Medium' as Difficulty,
             detectedLanguage: 'Unknown' as Language
-        }))]);
+        }));
+        setTasks(prevTasks => [...prevTasks, ...initialNewTasks]);
         setNextCursor(newNextCursor);
-        
-        const enrichedNewTasks = await enrichedNewTasksPromise;
 
-        setTasks(prevTasks => {
-            const updatedTasks = [...prevTasks];
-            enrichedNewTasks.forEach((enrichedTask) => {
-                const taskIndex = updatedTasks.findIndex(t => t.id === enrichedTask.id);
+        // Enrich the newly added tasks one by one
+        newTasks.forEach(async (task) => {
+            const enrichedTask = await enrichTask(task);
+            setTasks(prevTasks => {
+                const newTasks = [...prevTasks];
+                const taskIndex = newTasks.findIndex(t => t.id === enrichedTask.id);
                 if (taskIndex !== -1) {
-                  updatedTasks[taskIndex] = enrichedTask;
+                  newTasks[taskIndex] = enrichedTask;
+                  return newTasks;
                 }
+                // This case should ideally not happen if initial tasks were set correctly
+                return [...newTasks, enrichedTask];
             });
-            return updatedTasks;
         });
 
     } catch (error) {
@@ -413,3 +415,5 @@ const Page: FC = () => {
 };
 
 export default Page;
+
+    
