@@ -30,7 +30,7 @@ const TaskCard: FC<TaskCardProps> = ({ task }) => {
   return (
     <Card className="flex h-full flex-col transition-all hover:shadow-lg">
       <CardHeader>
-        <CardTitle className="text-lg">[{task.id}] {task.title}</CardTitle>
+        <CardTitle className="text-xl">[{task.id}] {task.title}</CardTitle>
         <div className="flex flex-wrap items-center gap-2 pt-2">
           {task.tags.slice(0, 4).map((tag) => (
             <Badge key={tag} variant="secondary" className="font-normal">{tag}</Badge>
