@@ -6,7 +6,6 @@ import { useState, useEffect } from "react";
 import type { DateRange } from "react-day-picker";
 import { format } from "date-fns";
 import { Calendar as CalendarIcon, Bot, Code, Settings, Globe, RefreshCw, Star, X, Check, ChevronsUpDown } from "lucide-react";
-import { CommandList } from "@/components/ui/command";
 
 import { cn } from "@/lib/utils";
 import type { Filters, TaskQuery, ProjectTag } from "@/lib/types";
@@ -15,14 +14,8 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-} from "@/components/ui/command"
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Badge } from "@/components/ui/badge";
 
 interface FilterBarProps {
   filters: Filters;
@@ -40,6 +33,7 @@ const trackButtons: { id: TaskQuery, label: string, icon: React.ReactNode }[] = 
 const TagSelect: FC<{ selectedTags: ProjectTag[], onSelectedTagsChange: (tags: ProjectTag[]) => void }> = ({ selectedTags, onSelectedTagsChange }) => {
     const [open, setOpen] = useState(false);
     const [allTags, setAllTags] = useState<ProjectTag[]>([]);
+    const [searchQuery, setSearchQuery] = useState("");
 
     useEffect(() => {
         async function fetchTags() {
@@ -63,7 +57,14 @@ const TagSelect: FC<{ selectedTags: ProjectTag[], onSelectedTagsChange: (tags: P
         } else {
             onSelectedTagsChange([...selectedTags, tag]);
         }
+        setSearchQuery("");
     };
+
+    const filteredTags = searchQuery === ""
+        ? allTags
+        : allTags.filter(tag =>
+            tag.name.toLowerCase().replace(/\s+/g, '').includes(searchQuery.toLowerCase().replace(/\s+/g, ''))
+        );
     
     return (
         <Popover open={open} onOpenChange={setOpen}>
@@ -72,38 +73,59 @@ const TagSelect: FC<{ selectedTags: ProjectTag[], onSelectedTagsChange: (tags: P
                     variant="outline"
                     role="combobox"
                     aria-expanded={open}
-                    className="w-full justify-between"
+                    className="w-full justify-between h-auto min-h-10"
                 >
-                    <span className="truncate">
-                        {selectedTags.length > 0 ? `${selectedTags.length} selected` : "Select tags..."}
-                    </span>
+                    <div className="flex gap-1 flex-wrap">
+                        {selectedTags.length > 0 ? (
+                           selectedTags.map(tag => (
+                            <Badge
+                               key={tag.phid}
+                               variant="secondary"
+                               className="mr-1"
+                               onClick={(e) => {
+                                   e.stopPropagation();
+                                   handleSelect(tag);
+                               }}
+                           >
+                               {tag.name}
+                               <X className="ml-1 h-3 w-3" />
+                           </Badge>
+                           ))
+                        ) : (
+                            <span className="text-muted-foreground">Select tags...</span>
+                        )}
+                    </div>
                     <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
             </PopoverTrigger>
             <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                <Command>
-                    <CommandInput placeholder="Search tags..." />
-                    <CommandEmpty>No tag found.</CommandEmpty>
+                <Command shouldFilter={false}>
+                    <CommandInput 
+                        placeholder="Search tags..."
+                        value={searchQuery}
+                        onValueChange={setSearchQuery}
+                    />
                     <CommandList>
-                      <CommandGroup>
-                          {allTags.map((tag) => (
-                              <CommandItem
-                                  key={tag.phid}
-                                  value={tag.name}
-                                  onSelect={() => {
-                                      handleSelect(tag);
-                                  }}
-                              >
-                                  <Check
-                                      className={cn(
-                                          "mr-2 h-4 w-4",
-                                          selectedTags.some(st => st.phid === tag.phid) ? "opacity-100" : "opacity-0"
-                                      )}
-                                  />
-                                  {tag.name}
-                              </CommandItem>
-                          ))}
-                      </CommandGroup>
+                        <CommandEmpty>No tag found.</CommandEmpty>
+                        <CommandGroup>
+                            {filteredTags.map((tag) => (
+                                <CommandItem
+                                    key={tag.phid}
+                                    value={tag.name}
+                                    onSelect={() => {
+                                        handleSelect(tag);
+                                    }}
+                                >
+                                    <Check
+                                        className={cn(
+                                            "mr-2 h-4 w-4",
+                                            selectedTags.some(st => st.phid === tag.phid) ? "opacity-100" : "opacity-0"
+                                        )}
+                                    />
+                                    {tag.name}
+                                </CommandItem>
+                            ))}
+                        </CommandGroup>
                     </CommandList>
                 </Command>
             </PopoverContent>
