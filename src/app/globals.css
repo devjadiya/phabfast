@@ -2,25 +2,21 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
-  font-family: Arial, Helvetica, sans-serif;
-}
-
 @layer base {
   :root {
-    --background: 220 13% 95%;
+    --background: 220 13% 95%; /* Light Gray - #F0F2F5 */
     --foreground: 222 84% 5%;
     --card: 0 0% 100%;
     --card-foreground: 222 84% 5%;
     --popover: 0 0% 100%;
     --popover-foreground: 222 84% 5%;
-    --primary: 199 76% 53%;
+    --primary: 199 76% 53%; /* Vibrant Blue - #29ABE2 */
     --primary-foreground: 0 0% 100%;
     --secondary: 220 13% 91%;
     --secondary-foreground: 222 84% 5%;
     --muted: 220 13% 91%;
     --muted-foreground: 220 10% 40%;
-    --accent: 30 100% 60%;
+    --accent: 30 100% 60%; /* Bright Orange - #FF9933 */
     --accent-foreground: 0 0% 100%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;

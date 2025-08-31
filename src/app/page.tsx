@@ -73,7 +73,7 @@ const Page: FC = () => {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `phabhunt-tasks.${format}`;
+      a.download = `phabfast-tasks.${format}`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -92,7 +92,7 @@ const Page: FC = () => {
   };
 
   return (
-    <div className="flex min-h-screen w-full flex-col bg-background font-body">
+    <div className="flex min-h-screen w-full flex-col bg-background">
       <Header
         onQueryChange={handleQueryChange}
         onRefresh={handleRefresh}

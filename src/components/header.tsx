@@ -23,7 +23,7 @@ const Header: FC<HeaderProps> = ({ onQueryChange, onRefresh, onExport, activeQue
         <div className="flex items-center gap-4">
           <BrainCircuit className="h-8 w-8 text-primary" />
           <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-            PhabHunt
+            PhabFast
           </h1>
         </div>
         <div className="flex items-center gap-2">
