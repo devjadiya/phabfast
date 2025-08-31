@@ -72,7 +72,6 @@ async function enrichTask(task: Task): Promise<Task> {
     let difficulty: Difficulty | 'Medium' = 'Medium';
 
     try {
-        // Language Detection
         const langResponse = await fetch('/api/tasks/detect-language', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -85,7 +84,6 @@ async function enrichTask(task: Task): Promise<Task> {
     } catch (e) { /* ignore */ }
 
     try {
-        // Gerrit Patch
         const gerritResponse = await fetch(`/api/gerrit/${task.id}`);
         if (gerritResponse.ok) {
             const gerritData = await gerritResponse.json();
@@ -94,7 +92,6 @@ async function enrichTask(task: Task): Promise<Task> {
     } catch (e) { /* ignore */ }
 
     try {
-        // Difficulty Detection
         const difficultyResponse = await fetch('/api/tasks/difficulty', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -144,7 +141,6 @@ const Page: FC = () => {
       try {
         const { tasks: fetchedTasks, nextCursor: newNextCursor } = await fetchTasksFromApi(newFilters);
         
-        // Set initial tasks without enrichment for faster display
         const initialTasks = fetchedTasks.map(task => ({
             ...task,
             difficulty: 'Medium' as Difficulty,
@@ -153,7 +149,6 @@ const Page: FC = () => {
         setTasks(initialTasks); 
         setNextCursor(newNextCursor);
         
-        // Enrich tasks one by one
         fetchedTasks.forEach(async (task, index) => {
             const enrichedTask = await enrichTask(task);
             setTasks(prevTasks => {
@@ -185,7 +180,6 @@ const Page: FC = () => {
     try {
         const { tasks: newTasks, nextCursor: newNextCursor } = await fetchTasksFromApi(filters, nextCursor);
         
-        // Append new tasks for immediate display
         const initialNewTasks = newTasks.map(task => ({
             ...task,
             difficulty: 'Medium' as Difficulty,
@@ -194,7 +188,6 @@ const Page: FC = () => {
         setTasks(prevTasks => [...prevTasks, ...initialNewTasks]);
         setNextCursor(newNextCursor);
 
-        // Enrich the newly added tasks one by one
         newTasks.forEach(async (task) => {
             const enrichedTask = await enrichTask(task);
             setTasks(prevTasks => {
@@ -204,7 +197,6 @@ const Page: FC = () => {
                   newTasks[taskIndex] = enrichedTask;
                   return newTasks;
                 }
-                // This case should ideally not happen if initial tasks were set correctly
                 return [...newTasks, enrichedTask];
             });
         });
@@ -222,19 +214,17 @@ const Page: FC = () => {
   }, [nextCursor, isFetchingMore, filters, toast]);
 
   useEffect(() => {
-    // Debounce the fetch call
     const handler = setTimeout(() => {
         handleFetchTasks(filters);
-    }, 500); // 500ms delay
+    }, 500);
 
-    // Cleanup function to clear timeout if filters change again
     return () => {
         clearTimeout(handler);
     };
   }, [filters, handleFetchTasks]);
   
   const handleFilterChange = (newFilters: Partial<Filters>) => {
-    setFilters(prev => ({ ...prev, ...newFilters, query: prev.query && newFilters.query !== null ? null : prev.query }));
+    setFilters(prev => ({ ...prev, ...newFilters, query: newFilters.query !== undefined ? newFilters.query : prev.query }));
   };
   
   const handleQueryChange = (query: TaskQuery | null) => {
@@ -264,8 +254,6 @@ const Page: FC = () => {
   };
   
   const sortedTasks = useMemo(() => {
-    const difficultyOrder: Difficulty[] = ['Easy', 'Medium', 'Hard'];
-
     let tasksToFilter = [...tasks];
 
     if (filters.difficulties && filters.difficulties.length > 0) {
@@ -286,6 +274,7 @@ const Page: FC = () => {
             case 'subscribers':
                 return a.subscribers - b.subscribers;
             case 'difficulty': {
+                const difficultyOrder: Difficulty[] = ['Easy', 'Medium', 'Hard'];
                 return difficultyOrder.indexOf(a.difficulty) - difficultyOrder.indexOf(b.difficulty);
             }
             default:
@@ -415,5 +404,3 @@ const Page: FC = () => {
 };
 
 export default Page;
-
-    
