@@ -14,6 +14,16 @@ function toEpoch(dateStr: string, endOfDay = false) {
     return Math.floor(utcDate.getTime() / 1000);
 }
 
+// Mapping from simple query aliases to their stable Phabricator Project PHIDs
+const projectPhidMap: Record<string, string> = {
+    'good-first': 'PHID-PROJ-cqz2i3rff52i2o4j4m2s', // Good first task
+    'bot-dev': 'PHID-PROJ-6k5i2l4w4q2p7k2n4x6e', // Bots
+    'core': 'PHID-PROJ-evy6ry35h44jbgyz33mp', // MediaWiki-Core
+    'gadgets': 'PHID-PROJ-ylt7fu5sxyuxb3xdrxdi', // MediaWiki-Gadgets
+    'web-tools': 'PHID-PROJ-s66yyqj5t4uwx3vjfxqe', // Toolforge
+};
+
+
 export async function POST(req: Request) {
   try {
     const { filters, after, order } = await req.json();
@@ -30,12 +40,8 @@ export async function POST(req: Request) {
         queryParts.push(filters.text);
     }
     
-    if (filters.query) {
-        if (filters.query === 'good-first') projectConstraints.push('good first task');
-        if (filters.query === 'bot-dev') projectConstraints.push('bots');
-        if (filters.query === 'core') projectConstraints.push('MediaWiki-Core');
-        if (filters.query === 'gadgets') projectConstraints.push('MediaWiki-Gadgets');
-        if (filters.query === 'web-tools') projectConstraints.push('Toolforge');
+    if (filters.query && projectPhidMap[filters.query]) {
+        projectConstraints.push(projectPhidMap[filters.query]);
     }
 
     if (projectConstraints.length > 0) {
