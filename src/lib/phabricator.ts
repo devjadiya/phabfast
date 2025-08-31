@@ -60,7 +60,7 @@ export async function searchPhabricatorTasks(constraints: object = {}, attachmen
         if(Array.isArray(value)) {
             value.forEach((v, i) => form.append(`constraints[${key}][${i}]`, v))
         } else {
-             if (value) form.append(`constraints[${key}]`, value);
+             if (value) form.append(`constraints[${key}]`, value as string);
         }
     });
 
@@ -76,6 +76,8 @@ export async function searchPhabricatorTasks(constraints: object = {}, attachmen
             'Content-Type': 'application/x-www-form-urlencoded',
         },
         body: form.toString(),
+        // Add caching to prevent re-fetching the same data too often
+        next: { revalidate: 300 } // Revalidate every 5 minutes
       }
     );
     

@@ -121,7 +121,7 @@ const Page: FC = () => {
         toast({
           variant: "destructive",
           title: "Error",
-          description: "Failed to fetch tasks. Check the console for details.",
+          description: "Failed to fetch tasks. Check the Phabricator API configuration and network.",
         });
       }
     });
