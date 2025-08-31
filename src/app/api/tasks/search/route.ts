@@ -27,32 +27,33 @@ function toEpoch(dateInput: string | Date, endOfDay = false) {
 const projectPhidMap: Record<string, string[]> = {
     'good-first': ['PHID-PROJ-cqz2i3rff52i2o4j4m2s'], // Good first task
     'bot-dev': [
-        'PHID-PROJ-cfim5sbsz722ywm4ja6c', // Bots
-        'PHID-PROJ-j2b5r2zvvxpfv4pyo5p7', // Pywikibot
-        'PHID-PROJ-w3f7swourh32qmdc6jgs',  // Toolforge
         'PHID-PROJ-b3aevxeyvrcx724i27u6', // Bot-Frameworks
-        'PHID-PROJ-qjddc42on3yqg5da2g43', // Cloud-Services
         'PHID-PROJ-c46ybasbcjpfzaske7qh', // AutoWikiBrowser
+        'PHID-PROJ-j2b5r2zvvxpfv4pyo5p7', // Pywikibot
+        'PHID-PROJ-neg35zlj3slftkvg6u2i', // BotPasswords
+        'PHID-PROJ-ghgwxv34b2uyw7pkhwz4', // CheckWiki
     ],
     'core': [
         'PHID-PROJ-evy6ry35h44jbgyz33mp', // MediaWiki-Core
-        'PHID-PROJ-c4ax6usbfzetj3f67i3c', // Action-API
-        'PHID-PROJ-uujzuqfajq327gnomrtf', // Database
-        'PHID-PROJ-iaak2h2rgyd7wz4vsqw2', // File-Backends
-        'PHID-PROJ-xwi6qyae7ndatdsvgvqc', // I18n-L10n
-        'PHID-PROJ-mswbzq3medraol2jhto2', // JobQueue
-        'PHID-PROJ-p7272t5v7jeihee3cb2m', // Logging
-        'PHID-PROJ-xck3caedubz2onjgya4x', // Skins
-        'PHID-PROJ-snjwnyaz2u5myo46j5n2', // Caching
-        'PHID-PROJ-nwvnhrgs2zwsx2u3b26y', // Security
-        'PHID-PROJ-sh7u7afy6v3oiprqge3f', // Performance
+        'PHID-PROJ-ylt7fu5sxyuxb3xdrxdi', // MediaWiki-extensions-Gadgets
+        'PHID-PROJ-q32v4p4wiiy3x5f3dz3y', // MediaWiki-JavaScript
+        'PHID-PROJ-s66ydqpxx5gqg2xve4o2', // MediaWiki-Page-editing
+        'PHID-PROJ-c4ax6usbfzetj3f67i3c', // MediaWiki-Action-API
     ],
-    'gadgets': ['PHID-PROJ-ylt7fu5sxyuxb3xdrxdi'], // MediaWiki-Gadgets
+    'gadgets': [
+        'PHID-PROJ-ylt7fu5sxyuxb3xdrxdi', // MediaWiki-extensions-Gadgets
+        'PHID-PROJ-vcvckxmnq5x3j2j3wseb', // Gadgets-2.0
+        'PHID-PROJ-euhgncm2p7rgqxdk6fka', // User-scripts
+        'PHID-PROJ-xay2g2er6jmxsvjsy3v4', // Gadget-Related
+        'PHID-PROJ-je5g2x7y5yq2s5o7u4i3', // MediaWiki-User-Interface
+    ],
     'web-tools': [
         'PHID-PROJ-w3f7swourh32qmdc6jgs', // Toolforge
-        'PHID-PROJ-qjddc42on3yqg5da2g43',  // Cloud-Services
-        'PHID-PROJ-ux524wbb2xizbgccjwfq', // Web-platform-team
-        'PHID-PROJ-yqnypxfdnzzmsoh6idja', // PAWS
+        'PHID-PROJ-qjddc42on3yqg5da2g43', // Cloud-Services
+        'PHID-PROJ-npa3vjifxryciisv3x5k', // GlobalCssJs
+        'PHID-PROJ-ux524wbb2xizbgccjwfq', // Web-Tools
+        'PHID-PROJ-ax5fo5lj4s6xgo5d3x5s', // Toolforge-cloud-services
+        'PHID-PROJ-u77t6g7d7g6d7g6d7g6d', // Cloud-Services-Team
     ],
 };
 
