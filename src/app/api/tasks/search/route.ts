@@ -2,7 +2,16 @@ import { NextResponse } from 'next/server';
 import { searchPhabricatorTasks } from '@/lib/phabricator';
 import { detectTaskLanguage } from '@/ai/flows/detect-task-language';
 import type { Filters, Task } from '@/lib/types';
-import { fromUnixTime, isWithinInterval, parseISO } from 'date-fns';
+
+function toEpoch(dateStr: string, endOfDay = false) {
+    const date = new Date(dateStr);
+    if (endOfDay) {
+      date.setUTCHours(23, 59, 59, 999);
+    } else {
+      date.setUTCHours(0, 0, 0, 0);
+    }
+    return Math.floor(date.getTime() / 1000);
+}
 
 export async function POST(req: Request) {
   try {
@@ -27,7 +36,15 @@ export async function POST(req: Request) {
     if(queryParts.length > 0) {
         constraints.query = queryParts.join(' ');
     }
-
+    
+    if (filters.dateRange?.from && filters.dateRange?.to) {
+        constraints.createdStart = toEpoch(filters.dateRange.from as any);
+        constraints.createdEnd = toEpoch(filters.dateRange.to as any, true);
+    }
+    
+    if (filters.maxSubscribers !== undefined) {
+      // This can't be a constraint, so it will be filtered client-side after fetch.
+    }
 
     const attachments = {
       projects: 1,
@@ -36,40 +53,12 @@ export async function POST(req: Request) {
 
     let tasks = await searchPhabricatorTasks(constraints, attachments);
 
-    // Server-side filtering
-    if (filters.dateRange?.from && filters.dateRange?.to) {
-      const fromDate = parseISO(filters.dateRange.from as any);
-      const toDate = parseISO(filters.dateRange.to as any);
-      tasks = tasks.filter(task => {
-        const taskDate = fromUnixTime(task.dateCreated);
-        return isWithinInterval(taskDate, { start: fromDate, end: toDate });
-      });
-    }
-    
+    // Post-fetch filtering for subscribers
     if (filters.maxSubscribers !== undefined) {
       tasks = tasks.filter(task => task.subscribers <= filters.maxSubscribers);
     }
     
-    // AI Language Detection is now moved to the client side to avoid timeouts.
-    // We will still filter by language if provided, but the detection is done on the frontend.
-    if (filters.languages && filters.languages.length > 0) {
-      const languageDetectionPromises = tasks.map(task => 
-        detectTaskLanguage({ description: `${task.title} ${task.description}` })
-      );
-      const languageResults = await Promise.all(languageDetectionPromises);
-
-      let tasksWithLanguage = tasks.map((task, index) => ({
-          ...task,
-          detectedLanguage: languageResults[index].language
-      }));
-
-      tasksWithLanguage = tasksWithLanguage.filter(task => 
-        task.detectedLanguage && (filters.languages as string[]).includes(task.detectedLanguage)
-      );
-
-      // Return only the tasks that match the language filter
-      tasks = tasksWithLanguage;
-    }
+    // Language detection and filtering are handled on the client-side to avoid gateway timeouts.
     
     return NextResponse.json(tasks.sort((a, b) => b.dateCreated - a.dateCreated));
   } catch (error: any) {

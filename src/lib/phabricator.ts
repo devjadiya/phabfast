@@ -84,7 +84,7 @@ export async function searchPhabricatorTasks(constraints: object = {}, attachmen
     if (!response.ok) {
         const errorText = await response.text();
         console.error('Phabricator API Error:', errorText);
-        throw new Error(`Phabricator API request failed: ${response.statusText}`);
+        throw new Error(`Phabricator API request failed: ${response.statusText} - ${errorText}`);
     }
 
     const data: PhabricatorResponse = await response.json();
