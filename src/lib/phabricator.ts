@@ -52,7 +52,7 @@ interface PhabricatorResponse {
 }
 
 
-export async function searchPhabricatorTasks(constraints: object = {}, attachments: object = {}, after?: string, order?: string): Promise<{ tasks: Task[], nextCursor: string | null }> {
+export async function searchPhabricatorTasks(constraints: object = {}, attachments: object = {}, after?: string, order?: string, limit: number = 20): Promise<{ tasks: Task[], nextCursor: string | null }> {
   if (!PHABRICATOR_API_URL || !PHABRICATOR_API_TOKEN) {
     console.error("Phabricator API URL or Token not set in .env");
     throw new Error("Phabricator API URL or Token not set.");
@@ -81,6 +81,8 @@ export async function searchPhabricatorTasks(constraints: object = {}, attachmen
     if (order) {
         form.append('order', order);
     }
+
+    form.append('limit', limit.toString());
     
     const response = await fetch(
       `${PHABRICATOR_API_URL}/maniphest.search`,

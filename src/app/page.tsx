@@ -43,6 +43,8 @@ const INITIAL_FILTERS: Filters = {
   text: '',
 };
 
+const API_TASK_LIMIT = 20;
+
 async function fetchTasksFromApi(filters: Filters, after?: string, order?: SortOption): Promise<{tasks: Task[], nextCursor: string | null}> {
   try {
     const response = await fetch('/api/tasks/search', {
@@ -50,7 +52,7 @@ async function fetchTasksFromApi(filters: Filters, after?: string, order?: SortO
         headers: {
             'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ filters, after, order })
+        body: JSON.stringify({ filters, after, order, limit: API_TASK_LIMIT })
     });
 
     if (!response.ok) {
@@ -226,11 +228,11 @@ const Page: FC = () => {
   }, [filters, handleFetchTasks]);
   
   const handleFilterChange = (newFilters: Partial<Filters>) => {
-    setFilters(prev => ({ ...prev, ...newFilters, text: prev.text }));
+    setFilters(prev => ({ ...prev, ...newFilters }));
   };
   
   const handleQueryChange = (query: TaskQuery | null) => {
-    setFilters(prev => ({ ...INITIAL_FILTERS, query: query, languages: [], difficulties: [] }));
+    setFilters(prev => ({ ...INITIAL_FILTERS, query: query, languages: prev.languages, difficulties: prev.difficulties }));
   };
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {

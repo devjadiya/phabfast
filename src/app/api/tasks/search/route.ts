@@ -26,7 +26,7 @@ const projectPhidMap: Record<string, string> = {
 
 export async function POST(req: Request) {
   try {
-    const { filters, after, order } = await req.json();
+    const { filters, after, order, limit } = await req.json();
     
     const constraints: any = {};
     const projectConstraints: string[] = [];
@@ -64,7 +64,7 @@ export async function POST(req: Request) {
       subscribers: 1,
     };
 
-    let { tasks, nextCursor } = await searchPhabricatorTasks(constraints, attachments, after, order);
+    let { tasks, nextCursor } = await searchPhabricatorTasks(constraints, attachments, after, order, limit);
 
     if (filters.maxSubscribers !== undefined) {
       tasks = tasks.filter(task => task.subscribers <= filters.maxSubscribers);
