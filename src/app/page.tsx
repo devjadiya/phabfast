@@ -37,7 +37,28 @@ async function fetchTasksFromApi(filters: Filters): Promise<Task[]> {
         throw new Error(errorData.error || 'Failed to fetch tasks');
     }
 
-    return await response.json();
+    let tasks: Task[] = await response.json();
+
+    // Fetch Gerrit URLs for each task
+    tasks = await Promise.all(
+      tasks.map(async (task) => {
+        try {
+          const gerritResponse = await fetch(`/api/gerrit/${task.id}`);
+          if (gerritResponse.ok) {
+            const gerritData = await gerritResponse.json();
+            if (gerritData.url) {
+              return { ...task, gerritUrl: gerritData.url };
+            }
+          }
+        } catch (error) {
+            // gerrit url is optional
+        }
+        return task;
+      })
+    );
+
+
+    return tasks;
   } catch (error) {
     console.error('Failed to fetch tasks:', error);
     // Re-throw or handle as needed
