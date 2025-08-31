@@ -1,3 +1,4 @@
+
 import { NextResponse } from 'next/server';
 import { searchPhabricatorTasks } from '@/lib/phabricator';
 
@@ -49,7 +50,6 @@ const projectPhidMap: Record<string, string[]> = {
     ],
     'web-tools': [
         'PHID-PROJ-w3f7swourh32qmdc6jgs', // Toolforge
-        'PHID-PROJ-qjddc42on3yqg5da2g43', // Cloud-Services
         'PHID-PROJ-npa3vjifxryciisv3x5k', // GlobalCssJs
         'PHID-PROJ-ux524wbb2xizbgccjwfq', // Web-Tools
         'PHID-PROJ-ax5fo5lj4s6xgo5d3x5s', // Toolforge-cloud-services
@@ -84,7 +84,7 @@ export async function POST(req: Request) {
     }
 
     let keywordFromQuery = filters.query && queryToKeyword[filters.query] ? queryToKeyword[filters.query] : '';
-    const fullTextQuery = filters.text ? `${keywordFromQuery} ${filters.text}`.trim() : keywordFromQuery;
+    const fullTextQuery = [keywordFromQuery, filters.text].filter(Boolean).join(' ');
 
     if (fullTextQuery) {
         constraints.query = fullTextQuery;
