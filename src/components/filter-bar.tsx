@@ -21,6 +21,7 @@ interface FilterBarProps {
   filters: Filters;
   onFilterChange: (newFilters: Partial<Filters>) => void;
   onQueryChange: (query: TaskQuery | null) => void;
+  allTags: ProjectTag[];
 }
 
 const trackButtons: { id: TaskQuery, label: string, icon: React.ReactNode }[] = [
@@ -30,34 +31,25 @@ const trackButtons: { id: TaskQuery, label: string, icon: React.ReactNode }[] = 
     { id: 'web-tools', label: 'Web', icon: <Globe className="mr-2 h-4 w-4" /> },
 ];
 
-const TagSelect: FC<{ selectedTags: ProjectTag[], onSelectedTagsChange: (tags: ProjectTag[]) => void }> = ({ selectedTags, onSelectedTagsChange }) => {
+const TagSelect: FC<{ 
+    selectedPhids: string[], 
+    onSelectedPhidsChange: (phids: string[]) => void, 
+    allTags: ProjectTag[] 
+}> = ({ selectedPhids, onSelectedPhidsChange, allTags }) => {
     const [open, setOpen] = useState(false);
-    const [allTags, setAllTags] = useState<ProjectTag[]>([]);
     const [searchQuery, setSearchQuery] = useState("");
-
-    useEffect(() => {
-        async function fetchTags() {
-            try {
-                const res = await fetch('/api/tags');
-                const data = await res.json();
-                if (data.tags) {
-                    setAllTags(data.tags.sort((a: ProjectTag, b: ProjectTag) => a.name.localeCompare(b.name)));
-                }
-            } catch (e) {
-                console.error("Failed to fetch tags", e);
-            }
-        }
-        fetchTags();
-    }, []);
+    
+    const selectedTags = allTags.filter(tag => selectedPhids.includes(tag.phid));
 
     const handleSelect = (tag: ProjectTag) => {
-        const isSelected = selectedTags.some(st => st.phid === tag.phid);
+        const isSelected = selectedPhids.includes(tag.phid);
         if (isSelected) {
-            onSelectedTagsChange(selectedTags.filter(st => st.phid !== tag.phid));
+            onSelectedPhidsChange(selectedPhids.filter(phid => phid !== tag.phid));
         } else {
-            onSelectedTagsChange([...selectedTags, tag]);
+            onSelectedPhidsChange([...selectedPhids, tag.phid]);
         }
         setSearchQuery("");
+        // setOpen(false); // Optionally close on select
     };
 
     const filteredTags = searchQuery === ""
@@ -92,7 +84,7 @@ const TagSelect: FC<{ selectedTags: ProjectTag[], onSelectedTagsChange: (tags: P
                            </Badge>
                            ))
                         ) : (
-                            <span className="text-muted-foreground">Select tags...</span>
+                            <span className="text-muted-foreground">Select project tags...</span>
                         )}
                     </div>
                     <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
@@ -119,7 +111,7 @@ const TagSelect: FC<{ selectedTags: ProjectTag[], onSelectedTagsChange: (tags: P
                                     <Check
                                         className={cn(
                                             "mr-2 h-4 w-4",
-                                            selectedTags.some(st => st.phid === tag.phid) ? "opacity-100" : "opacity-0"
+                                            selectedPhids.includes(tag.phid) ? "opacity-100" : "opacity-0"
                                         )}
                                     />
                                     {tag.name}
@@ -134,24 +126,21 @@ const TagSelect: FC<{ selectedTags: ProjectTag[], onSelectedTagsChange: (tags: P
 };
 
 
-const FilterBar: FC<FilterBarProps> = ({ filters, onFilterChange, onQueryChange }) => {
+const FilterBar: FC<FilterBarProps> = ({ filters, onFilterChange, onQueryChange, allTags }) => {
   const [maxSubscribers, setMaxSubscribers] = useState(filters.maxSubscribers);
-  const [selectedTags, setSelectedTags] = useState<ProjectTag[]>([]);
 
-  const handleSelectedTagsChange = (newTags: ProjectTag[]) => {
-      setSelectedTags(newTags);
-      onFilterChange({ projectPHIDs: newTags.map(t => t.phid) });
+  const handleSelectedPhidsChange = (newPhids: string[]) => {
+      onFilterChange({ projectPHIDs: newPhids });
   }
 
   const resetFilters = () => {
-    setMaxSubscribers(10);
-    setSelectedTags([]);
     onFilterChange({
         dateRange: { from: undefined, to: undefined },
         projectPHIDs: [],
         maxSubscribers: 10,
+        query: null,
     });
-    onQueryChange(null);
+    setMaxSubscribers(10);
   }
 
   const setDateRangePreset = (preset: 'today' | '7d' | '30d') => {
@@ -202,7 +191,7 @@ const FilterBar: FC<FilterBarProps> = ({ filters, onFilterChange, onQueryChange 
 
         <div className="md:col-span-5 space-y-2">
             <Label>Project Tags</Label>
-             <TagSelect selectedTags={selectedTags} onSelectedTagsChange={handleSelectedTagsChange} />
+             <TagSelect selectedPhids={filters.projectPHIDs} onSelectedPhidsChange={handleSelectedPhidsChange} allTags={allTags} />
         </div>
         
         <div className="md:col-span-4 space-y-2">

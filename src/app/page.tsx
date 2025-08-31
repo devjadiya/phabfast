@@ -9,12 +9,12 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import LoadMore from "@/components/load-more";
+import TaskFeed from "@/components/task-feed";
 
-import type { Task, Filters, TaskQuery, Difficulty, Language, SortOption } from "@/lib/types";
+import type { Task, Filters, TaskQuery, Difficulty, Language, SortOption, ProjectTag } from "@/lib/types";
 import { difficulties, languages } from "@/lib/types";
 import Header from "@/components/header";
 import FilterBar from "@/components/filter-bar";
-import TaskFeed from "@/components/task-feed";
 import { X, Download } from "lucide-react";
 import {
   Select,
@@ -143,6 +143,22 @@ const Page: FC = () => {
   const [suggestions, setSuggestions] = useState<Task[]>([]);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [isFetchingMore, setIsFetchingMore] = useState(false);
+  const [allTags, setAllTags] = useState<ProjectTag[]>([]);
+
+   useEffect(() => {
+        async function fetchTags() {
+            try {
+                const res = await fetch('/api/tags');
+                const data = await res.json();
+                if (data.tags) {
+                    setAllTags(data.tags.sort((a: ProjectTag, b: ProjectTag) => a.name.localeCompare(b.name)));
+                }
+            } catch (e) {
+                console.error("Failed to fetch tags", e);
+            }
+        }
+        fetchTags();
+    }, []);
 
   const handleFetchTasks = useCallback((newFilters: Filters) => {
     startTransition(async () => {
@@ -261,19 +277,11 @@ const Page: FC = () => {
   }, [searchText]);
 
   const handleFilterChange = (newFilters: Partial<Filters>) => {
-    const currentQuery = filters.query;
-    const combinedFilters = { ...filters, ...newFilters };
-    
-    // Don't reset query if other filters are applied
-    if (newFilters.projectPHIDs?.length) {
-      combinedFilters.query = currentQuery;
-    }
-    
-    setFilters(combinedFilters);
+    setFilters(prev => ({ ...prev, ...newFilters }));
   };
   
   const handleQueryChange = (query: TaskQuery | null) => {
-    setFilters(prev => ({ ...INITIAL_FILTERS, query: query, projectPHIDs: [] }));
+    setFilters(prev => ({ ...prev, query }));
   };
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -354,14 +362,23 @@ description: "There was an error exporting your tasks.",
   const removeFilterChip = (filterType: keyof Filters, value: any) => {
     if (filterType === 'projectPHIDs') {
       const currentValues = filters[filterType] as string[];
-      handleFilterChange({ [filterType]: currentValues.filter(item => item !== value) } as Partial<Filters>);
+      handleFilterChange({ [filterType]: currentValues.filter(item => item !== value) });
     } else if (filterType === 'query') {
         handleQueryChange(null);
     }
   };
+  
+  const resetAllFilters = () => {
+    setFilters(INITIAL_FILTERS);
+  }
 
-  const activeFilters = [
-    ...(filters.query ? [{type: 'query' as keyof Omit<Filters, 'projectPHIDs'>, value: filters.query, label: filters.query.replace(/-/g, ' ')}] : []),
+  const activeProjectTags = useMemo(() => {
+    return allTags.filter(tag => filters.projectPHIDs.includes(tag.phid));
+  }, [filters.projectPHIDs, allTags]);
+
+  const activeFiltersForDisplay = [
+    ...(filters.query ? [{type: 'query' as const, value: filters.query, label: filters.query.replace(/-/g, ' ')}] : []),
+    ...activeProjectTags.map(tag => ({type: 'projectPHIDs' as const, value: tag.phid, label: tag.name}))
   ];
 
   return (
@@ -378,13 +395,13 @@ description: "There was an error exporting your tasks.",
       />
       <main className="flex-1">
         <div className="container mx-auto px-4 py-8 md:px-6">
-          <FilterBar filters={filters} onFilterChange={handleFilterChange} onQueryChange={handleQueryChange} />
+          <FilterBar filters={filters} onFilterChange={handleFilterChange} onQueryChange={handleQueryChange} allTags={allTags} />
           
-          {activeFilters.length > 0 && (
+          {activeFiltersForDisplay.length > 0 && (
             <div className="sticky top-[65px] z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 py-2 -mt-2 mb-4">
                 <div className="flex flex-wrap items-center gap-2">
                 <span className="text-sm font-medium">Active Filters:</span>
-                {activeFilters.map(filter => (
+                {activeFiltersForDisplay.map(filter => (
                     <Badge key={`${filter.type}-${filter.value}`} variant="secondary" className="flex items-center gap-1 capitalize">
                     {filter.label}
                     <button onClick={() => removeFilterChip(filter.type, filter.value)} className="rounded-full hover:bg-muted-foreground/20" aria-label={`Remove ${filter.label} filter`}>
@@ -392,7 +409,7 @@ description: "There was an error exporting your tasks.",
                     </button>
                     </Badge>
                 ))}
-                <Button variant="ghost" size="sm" onClick={() => setFilters(prev => ({...prev, projectPHIDs: [], query: null}))}>
+                <Button variant="ghost" size="sm" onClick={resetAllFilters}>
                     Reset All
                 </Button>
                 </div>
@@ -447,3 +464,5 @@ description: "There was an error exporting your tasks.",
 };
 
 export default Page;
+
+    

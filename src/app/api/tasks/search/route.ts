@@ -2,13 +2,11 @@ import { NextResponse } from 'next/server';
 import { searchPhabricatorTasks } from '@/lib/phabricator';
 
 function toEpoch(dateInput: string | Date, endOfDay = false) {
+    if (!dateInput) return null;
     const date = typeof dateInput === 'string' ? new Date(dateInput) : dateInput;
     
     // Check if the date is valid
     if (isNaN(date.getTime())) {
-        // Handle invalid date string gracefully. 
-        // Depending on requirements, could return null, 0, or throw an error.
-        // For this API, returning null might be safest to not filter by a bad date.
         return null;
     }
     
@@ -58,22 +56,17 @@ export async function POST(req: Request) {
         constraints.statuses = ['open'];
     }
     
-    let projectPHIDs: string[] = filters.projectPHIDs || [];
-    let queryKeyword = '';
+    let queryPHIDs: string[] = filters.query && projectPhidMap[filters.query] ? projectPhidMap[filters.query] : [];
+    let userSelectedPHIDs: string[] = filters.projectPHIDs || [];
 
-    if (filters.query && projectPhidMap[filters.query]) {
-        projectPHIDs = [...new Set([...projectPHIDs, ...projectPhidMap[filters.query]])];
-    }
-    
-    if (projectPHIDs.length > 0) {
-        constraints.projects = projectPHIDs;
+    const combinedPHIDs = [...new Set([...queryPHIDs, ...userSelectedPHIDs])];
+
+    if (combinedPHIDs.length > 0) {
+        constraints.projects = combinedPHIDs;
     }
 
-    if (filters.query && queryToKeyword[filters.query]) {
-        queryKeyword = queryToKeyword[filters.query];
-    }
-    
-    const fullTextQuery = filters.text ? `${queryKeyword} ${filters.text}`.trim() : queryKeyword;
+    let keywordFromQuery = filters.query && queryToKeyword[filters.query] ? queryToKeyword[filters.query] : '';
+    const fullTextQuery = filters.text ? `${keywordFromQuery} ${filters.text}`.trim() : keywordFromQuery;
 
     if (fullTextQuery) {
         constraints.query = fullTextQuery;
@@ -95,7 +88,7 @@ export async function POST(req: Request) {
 
     let { tasks, nextCursor } = await searchPhabricatorTasks(constraints, attachments, after, order, limit);
 
-    if (filters.maxSubscribers !== undefined) {
+    if (filters.maxSubscribers !== undefined && filters.maxSubscribers < 20) {
       tasks = tasks.filter(task => task.subscribers <= filters.maxSubscribers);
     }
     
