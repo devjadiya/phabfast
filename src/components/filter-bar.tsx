@@ -4,7 +4,7 @@ import type { FC } from "react";
 import { useState } from "react";
 import type { DateRange } from "react-day-picker";
 import { format } from "date-fns";
-import { Calendar as CalendarIcon, Languages, Users, Star, ChevronsUpDown, Check, Bot, Code, Settings, Tool, X, RefreshCw, ToggleLeft } from "lucide-react";
+import { Calendar as CalendarIcon, Languages, Users, Star, ChevronsUpDown, Check, Bot, Code, Settings, Globe, X, RefreshCw, ToggleLeft } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import type { Filters, Language, Difficulty, TaskQuery } from "@/lib/types";
@@ -29,7 +29,7 @@ const trackButtons: { id: TaskQuery, label: string, icon: React.ReactNode }[] = 
     { id: 'bot-dev', label: 'Bots', icon: <Bot className="mr-2 h-4 w-4" /> },
     { id: 'core', label: 'Core', icon: <Settings className="mr-2 h-4 w-4" /> },
     { id: 'gadgets', label: 'Gadgets', icon: <Code className="mr-2 h-4 w-4" /> },
-    { id: 'web-tools', label: 'Web', icon: <Tool className="mr-2 h-4 w-4" /> },
+    { id: 'web-tools', label: 'Web', icon: <Globe className="mr-2 h-4 w-4" /> },
 ];
 
 const FilterBar: FC<FilterBarProps> = ({ filters, onFilterChange, onQueryChange }) => {
