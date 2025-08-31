@@ -9,7 +9,6 @@ import type { Task, Filters, TaskQuery } from "@/lib/types";
 import Header from "@/components/header";
 import FilterBar from "@/components/filter-bar";
 import TaskFeed from "@/components/task-feed";
-import { fromUnixTime, isWithinInterval } from "date-fns";
 
 const INITIAL_FILTERS: Filters = {
   dateRange: {
@@ -23,61 +22,26 @@ const INITIAL_FILTERS: Filters = {
   query: 'good-first',
 };
 
-// Helper function to fetch tasks from our new API routes
 async function fetchTasksFromApi(filters: Filters): Promise<Task[]> {
   try {
-    let response;
-    let tasks: Task[] = [];
+    const response = await fetch('/api/tasks/search', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(filters)
+    });
 
-    if (filters.query) {
-      if (filters.query === 'good-first') {
-        response = await fetch('/api/tasks/open?tag=good+first+task');
-        tasks = await response.json();
-        tasks = tasks.filter(task => task.subscribers <= 3);
-      } else if (filters.query === 'bot-dev') {
-        response = await fetch('/api/tasks/open?tag=bots');
-        tasks = await response.json();
-      }
-    } else {
-      response = await fetch('/api/tasks/open');
-      tasks = await response.json();
-    }
-    
-    // Client-side filtering
-    if (filters.dateRange.from && filters.dateRange.to) {
-      tasks = tasks.filter(task => {
-        const taskDate = fromUnixTime(task.dateCreated);
-        return isWithinInterval(taskDate, { start: filters.dateRange.from!, end: filters.dateRange.to! });
-      });
+    if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to fetch tasks');
     }
 
-    if(filters.query !== 'bot-dev') { 
-      tasks = tasks.filter(task => task.subscribers <= filters.maxSubscribers);
-    }
-    
-    // We enrich with language and gerrit url on the client now
-    tasks = await Promise.all(tasks.map(async (task) => {
-        const langResponse = await fetch('/api/tasks/detect-language', {
-            method: 'POST',
-            body: JSON.stringify({ description: `${task.title} ${task.description}` })
-        });
-        const { language } = await langResponse.json();
-        task.detectedLanguage = language;
-        
-        return task;
-    }));
-
-    if (filters.languages.length > 0) {
-      tasks = tasks.filter(task => 
-        task.detectedLanguage && filters.languages.includes(task.detectedLanguage as any)
-      );
-    }
-
-    return tasks.sort((a, b) => b.dateCreated - a.dateCreated);
-
+    return await response.json();
   } catch (error) {
     console.error('Failed to fetch tasks:', error);
-    return [];
+    // Re-throw or handle as needed
+    throw error;
   }
 }
 
@@ -85,7 +49,7 @@ async function exportTasks(tasks: Task[], format: "csv" | "md"): Promise<string>
   if (format === "csv") {
     const header = "ID,Title,Created At,Subscribers,Language,Tags,URL\n";
     const rows = tasks.map(task =>
-      `"${task.id}","${task.title}","${task.createdAt}","${task.subscribers}","${task.detectedLanguage}","${task.tags.join(', ')}","${task.phabricatorUrl}"`
+      `"${task.id}","${task.title}","${task.createdAt}","${task.subscribers}","${task.detectedLanguage || 'N/A'}","${task.tags.join(', ')}","${task.phabricatorUrl}"`
     ).join("\n");
     return header + rows;
   }
@@ -93,7 +57,7 @@ async function exportTasks(tasks: Task[], format: "csv" | "md"): Promise<string>
   if (format === "md") {
     const header = "| ID | Title | Created At | Subs | Lang | URL |\n|----|-------|------------|------|------|-----|\n";
     const rows = tasks.map(task =>
-      `| ${task.id} | ${task.title} | ${task.createdAt} | ${task.subscribers} | ${task.detectedLanguage} | [Link](${task.phabricatorUrl}) |`
+      `| ${task.id} | ${task.title} | ${task.createdAt} | ${task.subscribers} | ${task.detectedLanguage || 'N/A'} | [Link](${task.phabricatorUrl}) |`
     ).join("\n");
     return header + rows;
   }
