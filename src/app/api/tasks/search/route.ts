@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import { searchPhabricatorTasks } from '@/lib/phabricator';
-import { detectTaskLanguage } from '@/ai/flows/detect-task-language';
-import type { Filters, Task } from '@/lib/types';
+import type { Filters } from '@/lib/types';
 
 function toEpoch(dateStr: string, endOfDay = false) {
     const date = new Date(dateStr);
@@ -43,7 +42,7 @@ export async function POST(req: Request) {
     }
     
     if (filters.maxSubscribers !== undefined) {
-      // This can't be a constraint, so it will be filtered client-side after fetch.
+      // This can't be a constraint, so it will be filtered after fetch.
     }
 
     const attachments = {
@@ -57,8 +56,6 @@ export async function POST(req: Request) {
     if (filters.maxSubscribers !== undefined) {
       tasks = tasks.filter(task => task.subscribers <= filters.maxSubscribers);
     }
-    
-    // Language detection and filtering are handled on the client-side to avoid gateway timeouts.
     
     return NextResponse.json(tasks.sort((a, b) => b.dateCreated - a.dateCreated));
   } catch (error: any) {
